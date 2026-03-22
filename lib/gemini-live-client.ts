@@ -79,6 +79,16 @@ export class GeminiLiveClient {
     }
   }
 
+  sendActivityStart(): void {
+    if (!this.session) return;
+    this.session.sendRealtimeInput({ activityStart: {} });
+  }
+
+  sendActivityEnd(): void {
+    if (!this.session) return;
+    this.session.sendRealtimeInput({ activityEnd: {} });
+  }
+
   sendAudio(pcmData: ArrayBuffer): void {
     if (!this.session) {
       return;

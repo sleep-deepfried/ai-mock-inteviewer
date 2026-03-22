@@ -7,7 +7,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { GoogleGenAI, Modality, EndSensitivity, StartSensitivity, TurnCoverage } from "@google/genai";
+import { GoogleGenAI, Modality, TurnCoverage } from "@google/genai";
 import { getAuthUser } from "@/lib/auth";
 import { sessionStore } from "@/lib/session-store";
 import { buildSystemInstruction } from "@/lib/system-prompt";
@@ -74,14 +74,8 @@ export async function POST(request: Request) {
               },
             },
             realtimeInputConfig: {
+              automaticActivityDetection: { disabled: true },
               turnCoverage: TurnCoverage.TURN_INCLUDES_ALL_INPUT,
-              automaticActivityDetection: {
-                disabled: false,
-                endOfSpeechSensitivity: EndSensitivity.END_SENSITIVITY_HIGH,
-                startOfSpeechSensitivity: StartSensitivity.START_SENSITIVITY_HIGH,
-                prefixPaddingMs: 20,
-                silenceDurationMs: 100,
-              },
             },
             contextWindowCompression: {
               triggerTokens: "25000",

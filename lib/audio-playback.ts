@@ -67,7 +67,18 @@ export class AudioPlayback {
     this.audioContext = new AudioContext({ sampleRate: PLAYBACK_SAMPLE_RATE });
 
     try {
-      // Inline worklet via Blob URL
+      // Try loading from static file first (most reliable)
+      try {
+        await this.audioContext.audioWorklet.addModule("/audio-playback-processor.js");
+        this.workletNode = new AudioWorkletNode(this.audioContext, "pcm-playback-processor");
+        this.workletNode.connect(this.audioContext.destination);
+        this.initialized = true;
+        return;
+      } catch {
+        // Static file failed, try Blob URL
+      }
+
+      // Fallback: inline worklet via Blob URL
       const workletCode = `
 class P extends AudioWorkletProcessor {
   constructor() {

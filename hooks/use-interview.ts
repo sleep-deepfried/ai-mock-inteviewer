@@ -25,6 +25,9 @@ export interface UseInterviewReturn {
   endSession: () => void;
   analyserNode: AnalyserNode | null;
   transcript: TranscriptEntry[];
+  hintThinking: () => void;
+  sendActivityStart: () => void;
+  sendActivityEnd: () => void;
 }
 
 const SESSION_DURATION = 15 * 60; // 15 minutes in seconds
@@ -45,6 +48,7 @@ export function useInterview(sessionId: string | null): UseInterviewReturn {
   const playbackRef = useRef<AudioPlayback | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const tokenCacheRef = useRef<Map<string, string>>(new Map());
+  const thinkingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Start session
   useEffect(() => {
@@ -82,15 +86,28 @@ export function useInterview(sessionId: string | null): UseInterviewReturn {
         clientRef.current = client;
 
         client.onAudio = (pcmData) => {
+          if (thinkingTimerRef.current) {
+            clearTimeout(thinkingTimerRef.current);
+            thinkingTimerRef.current = null;
+          }
           setAiState("speaking");
           playbackRef.current?.play(pcmData);
         };
 
         client.onTurnComplete = () => {
           setAiState("listening");
+          // Start a timer: if no audio comes within 3s of user silence, show "thinking"
+          if (thinkingTimerRef.current) clearTimeout(thinkingTimerRef.current);
+          thinkingTimerRef.current = setTimeout(() => {
+            setAiState((prev) => prev === "listening" ? "thinking" : prev);
+          }, 3000);
         };
 
         client.onInterrupted = () => {
+          if (thinkingTimerRef.current) {
+            clearTimeout(thinkingTimerRef.current);
+            thinkingTimerRef.current = null;
+          }
           playbackRef.current?.stop();
           setAiState("listening");
         };
@@ -167,6 +184,10 @@ export function useInterview(sessionId: string | null): UseInterviewReturn {
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
+      if (thinkingTimerRef.current) {
+        clearTimeout(thinkingTimerRef.current);
+        thinkingTimerRef.current = null;
+      }
       captureRef.current?.stop();
       captureRef.current = null;
       playbackRef.current?.stop();
@@ -208,6 +229,20 @@ export function useInterview(sessionId: string | null): UseInterviewReturn {
     clientRef.current?.disconnect();
   }, []);
 
+  // Optimistic "thinking" hint — called by the UI when user stops speaking locally
+  const hintThinking = useCallback(() => {
+    setAiState((prev) => (prev === "listening" ? "thinking" : prev));
+  }, []);
+
+  // Manual VAD: send activity signals to Gemini
+  const sendActivityStart = useCallback(() => {
+    clientRef.current?.sendActivityStart();
+  }, []);
+
+  const sendActivityEnd = useCallback(() => {
+    clientRef.current?.sendActivityEnd();
+  }, []);
+
   return {
     status,
     aiState,
@@ -219,5 +254,8 @@ export function useInterview(sessionId: string | null): UseInterviewReturn {
     endSession,
     analyserNode,
     transcript,
+    hintThinking,
+    sendActivityStart,
+    sendActivityEnd,
   };
 }

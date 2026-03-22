@@ -30,6 +30,9 @@ function InterviewContent() {
     endSession,
     analyserNode,
     transcript,
+    hintThinking,
+    sendActivityStart,
+    sendActivityEnd,
   } = useInterview(sessionId);
 
   const [isCameraOn, setIsCameraOn] = useState(false);
@@ -37,6 +40,7 @@ function InterviewContent() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const userSpeakingRef = useRef(false);
   const hasRedirected = useRef(false);
+  const thinkHintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Redirect to results when interview ends
   useEffect(() => {
@@ -52,7 +56,7 @@ function InterviewContent() {
     router.push("/interview/results");
   }, [status, transcript, timeRemaining, jobRole, router]);
 
-  // Detect user speaking via analyser node volume
+  // Detect user speaking via analyser node volume + send activity signals
   useEffect(() => {
     if (!analyserNode || !isMicOn || status !== "active") {
       userSpeakingRef.current = false;
@@ -62,6 +66,7 @@ function InterviewContent() {
 
     const dataArray = new Uint8Array(analyserNode.fftSize);
     let rafId: number;
+    let activityActive = false;
 
     const check = () => {
       analyserNode.getByteTimeDomainData(dataArray);
@@ -75,13 +80,51 @@ function InterviewContent() {
       if (speaking !== userSpeakingRef.current) {
         userSpeakingRef.current = speaking;
         setUserSpeaking(speaking);
+
+        if (speaking) {
+          // User started speaking — send activityStart to Gemini
+          if (!activityActive) {
+            activityActive = true;
+            sendActivityStart();
+          }
+          // Clear any pending end timer
+          if (thinkHintTimerRef.current) {
+            clearTimeout(thinkHintTimerRef.current);
+            thinkHintTimerRef.current = null;
+          }
+        } else if (activityActive) {
+          // User stopped speaking — debounce 1s before sending activityEnd
+          // This avoids cutting off mid-sentence pauses
+          thinkHintTimerRef.current = setTimeout(() => {
+            activityActive = false;
+            sendActivityEnd();
+            hintThinking();
+          }, 1000);
+        }
       }
       rafId = requestAnimationFrame(check);
     };
 
     rafId = requestAnimationFrame(check);
-    return () => cancelAnimationFrame(rafId);
-  }, [analyserNode, isMicOn, status]);
+    return () => {
+      cancelAnimationFrame(rafId);
+      if (thinkHintTimerRef.current) {
+        clearTimeout(thinkHintTimerRef.current);
+        thinkHintTimerRef.current = null;
+      }
+      // Clean up: if activity was active, end it
+      if (activityActive) {
+        sendActivityEnd();
+      }
+    };
+  }, [
+    analyserNode,
+    isMicOn,
+    status,
+    sendActivityStart,
+    sendActivityEnd,
+    hintThinking,
+  ]);
 
   // Camera toggle
   useEffect(() => {
