@@ -93,13 +93,12 @@ function InterviewContent() {
             thinkHintTimerRef.current = null;
           }
         } else if (activityActive) {
-          // User stopped speaking — debounce 1s before sending activityEnd
-          // This avoids cutting off mid-sentence pauses
+          // User stopped speaking — debounce 500ms before sending activityEnd
           thinkHintTimerRef.current = setTimeout(() => {
             activityActive = false;
             sendActivityEnd();
             hintThinking();
-          }, 1000);
+          }, 500);
         }
       }
       rafId = requestAnimationFrame(check);
