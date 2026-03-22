@@ -18,6 +18,8 @@ export class GeminiLiveClient {
   onInterrupted: (() => void) | null = null;
   onError: ((error: Error) => void) | null = null;
   onSessionTimeout: (() => void) | null = null;
+  onInputTranscript: ((text: string) => void) | null = null;
+  onOutputTranscript: ((text: string) => void) | null = null;
 
   constructor(token: string) {
     this.client = new GoogleGenAI({
@@ -154,6 +156,20 @@ export class GeminiLiveClient {
       if (serverContent.interrupted) {
         if (this.onInterrupted) {
           this.onInterrupted();
+        }
+      }
+
+      // Handle input audio transcription (user speech)
+      if (serverContent.inputTranscription?.text) {
+        if (this.onInputTranscript) {
+          this.onInputTranscript(serverContent.inputTranscription.text);
+        }
+      }
+
+      // Handle output audio transcription (AI speech)
+      if (serverContent.outputTranscription?.text) {
+        if (this.onOutputTranscript) {
+          this.onOutputTranscript(serverContent.outputTranscription.text);
         }
       }
     }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { ProtectedRoute } from "@/components/protected-route";
 import { AIStateIndicator } from "@/components/ai-state-indicator";
 import { useInterview } from "@/hooks/use-interview";
@@ -15,7 +15,9 @@ function formatTime(seconds: number): string {
 
 function InterviewContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const sessionId = searchParams.get("sessionId");
+  const jobRole = searchParams.get("role") || "Unknown Role";
 
   const {
     status,
@@ -27,12 +29,28 @@ function InterviewContent() {
     toggleMic,
     endSession,
     analyserNode,
+    transcript,
   } = useInterview(sessionId);
 
   const [isCameraOn, setIsCameraOn] = useState(false);
   const [userSpeaking, setUserSpeaking] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const userSpeakingRef = useRef(false);
+  const hasRedirected = useRef(false);
+
+  // Redirect to results when interview ends
+  useEffect(() => {
+    if (status !== "ended" || hasRedirected.current) return;
+    if (transcript.length === 0) return;
+    hasRedirected.current = true;
+
+    const duration = 15 * 60 - timeRemaining;
+    sessionStorage.setItem(
+      "interview-results-data",
+      JSON.stringify({ transcript, jobRole, duration }),
+    );
+    router.push("/interview/results");
+  }, [status, transcript, timeRemaining, jobRole, router]);
 
   // Detect user speaking via analyser node volume
   useEffect(() => {
@@ -87,7 +105,7 @@ function InterviewContent() {
   }, [isCameraOn]);
 
   return (
-    <main className="relative flex h-screen flex-col overflow-hidden">
+    <main className="relative flex h-dvh flex-col overflow-hidden">
       {/* Error Banner */}
       {error && (
         <div

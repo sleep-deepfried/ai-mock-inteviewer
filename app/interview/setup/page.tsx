@@ -59,7 +59,9 @@ export default function InterviewSetupPage() {
       }
 
       const { sessionId } = await res.json();
-      router.push(`/interview?sessionId=${sessionId}`);
+      router.push(
+        `/interview?sessionId=${sessionId}&role=${encodeURIComponent(role)}`,
+      );
     } catch (err) {
       setApiError(
         err instanceof Error ? err.message : "Network error. Please try again.",

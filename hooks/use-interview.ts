@@ -8,6 +8,12 @@ import type { AIState } from "@/components/ai-state-indicator";
 
 export type InterviewStatus = "idle" | "connecting" | "active" | "ended";
 
+export interface TranscriptEntry {
+  role: "user" | "ai";
+  text: string;
+  timestamp: number;
+}
+
 export interface UseInterviewReturn {
   status: InterviewStatus;
   aiState: AIState;
@@ -18,6 +24,7 @@ export interface UseInterviewReturn {
   toggleMic: () => void;
   endSession: () => void;
   analyserNode: AnalyserNode | null;
+  transcript: TranscriptEntry[];
 }
 
 const SESSION_DURATION = 15 * 60; // 15 minutes in seconds
@@ -30,6 +37,8 @@ export function useInterview(sessionId: string | null): UseInterviewReturn {
   const [endReason, setEndReason] = useState<string | null>(null);
   const [isMicOn, setIsMicOn] = useState(true);
   const [analyserNode, setAnalyserNode] = useState<AnalyserNode | null>(null);
+  const transcriptRef = useRef<TranscriptEntry[]>([]);
+  const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
 
   const clientRef = useRef<GeminiLiveClient | null>(null);
   const captureRef = useRef<AudioCapture | null>(null);
@@ -94,6 +103,18 @@ export function useInterview(sessionId: string | null): UseInterviewReturn {
           setStatus("ended");
           setEndReason("Session time limit reached");
           cleanup();
+        };
+
+        client.onInputTranscript = (text) => {
+          const entry: TranscriptEntry = { role: "user", text, timestamp: Date.now() };
+          transcriptRef.current = [...transcriptRef.current, entry];
+          setTranscript(transcriptRef.current);
+        };
+
+        client.onOutputTranscript = (text) => {
+          const entry: TranscriptEntry = { role: "ai", text, timestamp: Date.now() };
+          transcriptRef.current = [...transcriptRef.current, entry];
+          setTranscript(transcriptRef.current);
         };
 
         await client.connect();
@@ -195,5 +216,6 @@ export function useInterview(sessionId: string | null): UseInterviewReturn {
     toggleMic,
     endSession,
     analyserNode,
+    transcript,
   };
 }
