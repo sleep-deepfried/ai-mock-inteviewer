@@ -49,6 +49,7 @@ export function useInterview(sessionId: string | null): UseInterviewReturn {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const tokenCacheRef = useRef<Map<string, string>>(new Map());
   const thinkingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const userHasSpokenRef = useRef(false);
 
   // Start session
   useEffect(() => {
@@ -96,11 +97,9 @@ export function useInterview(sessionId: string | null): UseInterviewReturn {
 
         client.onTurnComplete = () => {
           setAiState("listening");
-          // Start a timer: if no audio comes within 3s of user silence, show "thinking"
+          userHasSpokenRef.current = false;
+          // Only show "thinking" after turn complete if user speaks again
           if (thinkingTimerRef.current) clearTimeout(thinkingTimerRef.current);
-          thinkingTimerRef.current = setTimeout(() => {
-            setAiState((prev) => prev === "listening" ? "thinking" : prev);
-          }, 3000);
         };
 
         client.onInterrupted = () => {
@@ -126,6 +125,7 @@ export function useInterview(sessionId: string | null): UseInterviewReturn {
           const entry: TranscriptEntry = { role: "user", text, timestamp: Date.now() };
           transcriptRef.current = [...transcriptRef.current, entry];
           setTranscript(transcriptRef.current);
+          userHasSpokenRef.current = true;
           // User finished speaking — Gemini is now processing
           setAiState("thinking");
         };
@@ -229,13 +229,15 @@ export function useInterview(sessionId: string | null): UseInterviewReturn {
     clientRef.current?.disconnect();
   }, []);
 
-  // Optimistic "thinking" hint — called by the UI when user stops speaking locally
+  // Optimistic "thinking" hint — only if user has actually spoken
   const hintThinking = useCallback(() => {
+    if (!userHasSpokenRef.current) return;
     setAiState((prev) => (prev === "listening" ? "thinking" : prev));
   }, []);
 
   // Manual VAD: send activity signals to Gemini
   const sendActivityStart = useCallback(() => {
+    userHasSpokenRef.current = true;
     clientRef.current?.sendActivityStart();
   }, []);
 
