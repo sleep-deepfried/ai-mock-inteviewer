@@ -71,7 +71,7 @@ export default function InterviewSetupPage() {
 
   return (
     <ProtectedRoute>
-      <main className="flex min-h-screen flex-col items-center px-4 py-12">
+      <main className="flex min-h-screen flex-col items-center px-4 py-8 sm:py-12">
         <div className="w-full max-w-lg space-y-8">
           <div className="text-center">
             <h1 className="text-3xl font-bold">Interview Setup</h1>

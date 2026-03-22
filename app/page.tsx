@@ -36,45 +36,31 @@ export default function HomePage() {
         <span className="text-lg font-semibold tracking-tight">
           AI Mock Interviewer
         </span>
-        <div className="flex gap-4">
-          <Link
-            href="/interview/setup"
-            className="rounded-lg px-4 py-2 text-sm font-medium text-gray-300 transition hover:text-white"
-          >
-            Get Started
-          </Link>
-          <Link
-            href="/login"
-            className="rounded-lg px-4 py-2 text-sm font-medium text-gray-300 transition hover:text-white"
-          >
-            Sign In
-          </Link>
-        </div>
       </nav>
 
       {/* Hero */}
-      <section className="flex flex-1 flex-col items-center justify-center px-6 text-center">
-        <h1 className="max-w-3xl text-5xl font-bold leading-tight tracking-tight sm:text-6xl">
+      <section className="flex flex-1 flex-col items-center justify-center px-4 py-12 text-center sm:px-6">
+        <h1 className="max-w-3xl text-3xl font-bold leading-tight tracking-tight sm:text-5xl lg:text-6xl">
           Ace Your Next Interview with{" "}
           <span className="bg-gradient-to-r from-purple-400 to-purple-600 bg-clip-text text-transparent">
             AI-Powered Practice
           </span>
         </h1>
-        <p className="mt-6 max-w-xl text-lg text-gray-400">
+        <p className="mt-4 max-w-xl text-base text-gray-400 sm:mt-6 sm:text-lg">
           Practice mock interviews with a realistic AI interviewer. Get
           real-time voice feedback, resume-tailored questions, and build
           confidence before the real thing.
         </p>
         <Link
           href="/interview/setup"
-          className="mt-8 inline-flex items-center rounded-xl bg-purple-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-purple-600/25 transition hover:bg-purple-500"
+          className="mt-6 inline-flex items-center rounded-xl bg-purple-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-purple-600/25 transition hover:bg-purple-500 sm:mt-8"
         >
           Get Started
         </Link>
       </section>
 
       {/* Feature Grid */}
-      <section className="mx-auto grid w-full max-w-5xl grid-cols-1 gap-6 px-6 py-16 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="mx-auto grid w-full max-w-5xl grid-cols-1 gap-4 px-4 py-12 sm:grid-cols-2 sm:gap-6 sm:px-6 sm:py-16 lg:grid-cols-4">
         {features.map((f) => (
           <div
             key={f.title}

@@ -56,9 +56,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const devBypass = process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH === "true";
 
     if (devBypass) {
-      setSession(DEV_SESSION);
-      setUser(DEV_USER);
-      setLoading(false);
+      Promise.resolve().then(() => {
+        setSession(DEV_SESSION);
+        setUser(DEV_USER);
+        setLoading(false);
+      });
       return;
     }
 

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import * as fc from "fast-check";
-import { SessionStore, SessionEntry } from "@/lib/session-store";
+import { SessionStore } from "@/lib/session-store";
 
 // Arbitrary for generating valid session entries
 const sessionEntryArb = fc.record({
@@ -13,10 +13,7 @@ const sessionEntryArb = fc.record({
 const sessionIdArb = fc.uuid();
 
 describe("SessionStore property tests", () => {
-  let store: SessionStore;
-
   beforeEach(() => {
-    store = new SessionStore();
     vi.useFakeTimers({ now: Date.now() });
   });
 

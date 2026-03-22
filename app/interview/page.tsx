@@ -32,11 +32,13 @@ function InterviewContent() {
   const [isCameraOn, setIsCameraOn] = useState(false);
   const [userSpeaking, setUserSpeaking] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const userSpeakingRef = useRef(false);
 
   // Detect user speaking via analyser node volume
   useEffect(() => {
     if (!analyserNode || !isMicOn || status !== "active") {
-      setUserSpeaking(false);
+      userSpeakingRef.current = false;
+      Promise.resolve().then(() => setUserSpeaking(false));
       return;
     }
 
@@ -45,14 +47,17 @@ function InterviewContent() {
 
     const check = () => {
       analyserNode.getByteTimeDomainData(dataArray);
-      // Calculate RMS volume
       let sum = 0;
       for (let i = 0; i < dataArray.length; i++) {
         const v = (dataArray[i] - 128) / 128;
         sum += v * v;
       }
       const rms = Math.sqrt(sum / dataArray.length);
-      setUserSpeaking(rms > 0.02);
+      const speaking = rms > 0.02;
+      if (speaking !== userSpeakingRef.current) {
+        userSpeakingRef.current = speaking;
+        setUserSpeaking(speaking);
+      }
       rafId = requestAnimationFrame(check);
     };
 
@@ -102,12 +107,12 @@ function InterviewContent() {
         {/* Center: AI Avatar + State */}
         <div className="flex flex-1 flex-col items-center justify-center gap-4">
           {/* AI Avatar */}
-          <div className="relative flex h-32 w-32 items-center justify-center">
+          <div className="relative flex h-24 w-24 items-center justify-center sm:h-32 sm:w-32">
             {aiState === "speaking" && (
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-purple-500 opacity-30" />
             )}
             <div
-              className={`relative flex h-32 w-32 items-center justify-center rounded-full bg-gradient-to-br from-purple-600 to-purple-800 text-4xl font-bold shadow-lg shadow-purple-600/20 transition-shadow ${aiState === "speaking" ? "shadow-purple-500/40 shadow-xl" : ""}`}
+              className={`relative flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-purple-600 to-purple-800 text-3xl font-bold shadow-lg shadow-purple-600/20 transition-shadow sm:h-32 sm:w-32 sm:text-4xl ${aiState === "speaking" ? "shadow-purple-500/40 shadow-xl" : ""}`}
             >
               AI
             </div>
@@ -122,19 +127,19 @@ function InterviewContent() {
       </div>
 
       {/* Self-view PIP */}
-      <div className="absolute bottom-20 right-4 z-10 overflow-hidden rounded-xl shadow-lg">
+      <div className="absolute bottom-20 right-2 z-10 overflow-hidden rounded-xl shadow-lg sm:right-4">
         <video
           ref={videoRef}
           autoPlay
           muted
           playsInline
-          className={`h-32 w-44 bg-slate-900 object-cover ${!isCameraOn ? "hidden" : ""}`}
+          className={`h-24 w-32 bg-slate-900 object-cover sm:h-32 sm:w-44 ${!isCameraOn ? "hidden" : ""}`}
         />
       </div>
 
       {/* User speaking indicator */}
       {status === "active" && !isCameraOn && (
-        <div className="absolute bottom-20 right-4 z-10 flex h-36 w-56 flex-col items-center justify-center rounded-lg bg-slate-800 shadow-lg">
+        <div className="absolute bottom-20 right-2 z-10 flex h-28 w-40 flex-col items-center justify-center rounded-lg bg-slate-800 shadow-lg sm:right-4 sm:h-36 sm:w-56">
           <div className="relative flex h-10 w-10 items-center justify-center">
             {userSpeaking && (
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-40" />
@@ -154,7 +159,7 @@ function InterviewContent() {
       )}
 
       {/* Control Bar */}
-      <div className="flex items-center justify-center gap-4 border-t border-white/10 bg-slate-900/80 px-6 py-4 backdrop-blur">
+      <div className="flex items-center justify-center gap-3 border-t border-white/10 bg-slate-900/80 px-4 py-3 backdrop-blur sm:gap-4 sm:px-6 sm:py-4">
         <button
           onClick={toggleMic}
           disabled={status !== "active"}

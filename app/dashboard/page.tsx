@@ -10,11 +10,11 @@ export default function DashboardPage() {
 
   return (
     <ProtectedRoute>
-      <main className="flex min-h-screen flex-col px-6 py-8">
+      <main className="flex min-h-screen flex-col px-4 py-6 sm:px-6 sm:py-8">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Welcome back</h1>
+            <h1 className="text-xl font-bold sm:text-2xl">Welcome back</h1>
             {user?.email && (
               <p className="mt-1 text-sm text-gray-400">{user.email}</p>
             )}
