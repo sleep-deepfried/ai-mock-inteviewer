@@ -1,6 +1,3 @@
-import { PDFParse } from "pdf-parse";
-import mammoth from "mammoth";
-
 const MIME_PDF = "application/pdf";
 const MIME_DOCX =
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
@@ -36,6 +33,7 @@ export async function parseResume(
 
 async function parsePdf(buffer: Buffer): Promise<string> {
   try {
+    const { PDFParse } = await import("pdf-parse");
     const pdf = new PDFParse({ data: new Uint8Array(buffer) });
     const result = await pdf.getText();
     return result.text;
@@ -48,6 +46,7 @@ async function parsePdf(buffer: Buffer): Promise<string> {
 
 async function parseDocx(buffer: Buffer): Promise<string> {
   try {
+    const mammoth = await import("mammoth");
     const result = await mammoth.extractRawText({ buffer });
     return result.value;
   } catch (err) {
