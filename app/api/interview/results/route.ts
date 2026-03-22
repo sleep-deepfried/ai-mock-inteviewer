@@ -70,7 +70,7 @@ ${conversationText}`;
 
     const genai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string });
     const response = await genai.models.generateContent({
-      model: "gemini-2.0-flash-lite",
+      model: "gemini-2.5-flash-lite",
       contents: prompt,
     });
 

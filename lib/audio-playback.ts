@@ -67,28 +67,37 @@ export class AudioPlayback {
     this.audioContext = new AudioContext({ sampleRate: PLAYBACK_SAMPLE_RATE });
 
     try {
-      // Inline worklet as data URI to avoid Next.js dev server issues and Blob URL bugs
-      const workletCode = [
-        'class P extends AudioWorkletProcessor{',
-        'constructor(){super();this.q=[];',
-        'this.port.onmessage=e=>{',
-        'if(e.data==="interrupt")this.q=[];',
-        'else if(e.data instanceof Float32Array)this.q.push(e.data);',
-        '};}',
-        'process(i,o){',
-        'const c=o[0]&&o[0][0];if(!c)return true;',
-        'let x=0;',
-        'while(x<c.length&&this.q.length>0){',
-        'const b=this.q[0];if(!b||!b.length){this.q.shift();continue;}',
-        'const n=Math.min(c.length-x,b.length);',
-        'for(let i=0;i<n;i++)c[x++]=b[i];',
-        'if(n<b.length)this.q[0]=b.slice(n);else this.q.shift();}',
-        'while(x<c.length)c[x++]=0;',
-        'return true;}}',
-        'registerProcessor("pcm-playback-processor",P);',
-      ].join('');
-      const dataUrl = `data:application/javascript,${encodeURIComponent(workletCode)}`;
-      await this.audioContext.audioWorklet.addModule(dataUrl);
+      // Inline worklet via Blob URL
+      const workletCode = `
+class P extends AudioWorkletProcessor {
+  constructor() {
+    super();
+    this.q = [];
+    this.port.onmessage = (e) => {
+      if (e.data === "interrupt") this.q = [];
+      else if (e.data instanceof Float32Array) this.q.push(e.data);
+    };
+  }
+  process(i, o) {
+    const c = o[0] && o[0][0];
+    if (!c) return true;
+    let x = 0;
+    while (x < c.length && this.q.length > 0) {
+      const b = this.q[0];
+      if (!b || !b.length) { this.q.shift(); continue; }
+      const n = Math.min(c.length - x, b.length);
+      for (let j = 0; j < n; j++) c[x++] = b[j];
+      if (n < b.length) this.q[0] = b.slice(n); else this.q.shift();
+    }
+    while (x < c.length) c[x++] = 0;
+    return true;
+  }
+}
+registerProcessor("pcm-playback-processor", P);`;
+      const blob = new Blob([workletCode], { type: "application/javascript" });
+      const url = URL.createObjectURL(blob);
+      await this.audioContext.audioWorklet.addModule(url);
+      URL.revokeObjectURL(url);
       this.workletNode = new AudioWorkletNode(this.audioContext, "pcm-playback-processor");
       this.workletNode.connect(this.audioContext.destination);
       this.initialized = true;

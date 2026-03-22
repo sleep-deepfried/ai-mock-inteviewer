@@ -109,6 +109,8 @@ export function useInterview(sessionId: string | null): UseInterviewReturn {
           const entry: TranscriptEntry = { role: "user", text, timestamp: Date.now() };
           transcriptRef.current = [...transcriptRef.current, entry];
           setTranscript(transcriptRef.current);
+          // User finished speaking — Gemini is now processing
+          setAiState("thinking");
         };
 
         client.onOutputTranscript = (text) => {
