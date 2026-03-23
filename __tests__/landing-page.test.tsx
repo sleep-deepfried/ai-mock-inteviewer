@@ -1,8 +1,22 @@
 import { render, screen } from "@testing-library/react";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import HomePage from "@/app/page";
 
 describe("Landing Page", () => {
+  const originalBypass = process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH;
+
+  beforeEach(() => {
+    process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH = "false";
+  });
+
+  afterEach(() => {
+    if (originalBypass !== undefined) {
+      process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH = originalBypass;
+    } else {
+      delete process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH;
+    }
+  });
+
   it("renders hero heading", () => {
     render(<HomePage />);
     expect(
@@ -11,13 +25,15 @@ describe("Landing Page", () => {
     expect(screen.getByText(/AI-Powered Practice/i)).toBeInTheDocument();
   });
 
-  it('renders "Get Started" link pointing to /interview/setup', () => {
+  it('renders "Get Started" links pointing to /interview/setup', () => {
     render(<HomePage />);
     const getStartedLinks = screen.getAllByRole("link", {
       name: /get started/i,
     });
     expect(getStartedLinks.length).toBeGreaterThanOrEqual(1);
-    expect(getStartedLinks[0]).toHaveAttribute("href", "/interview/setup");
+    getStartedLinks.forEach((link) => {
+      expect(link).toHaveAttribute("href", "/interview/setup");
+    });
   });
 
   it("renders feature cards", () => {
@@ -33,9 +49,28 @@ describe("Landing Page", () => {
     expect(screen.getByText(/All rights reserved/i)).toBeInTheDocument();
   });
 
-  it('renders "Sign In" nav link pointing to /login', () => {
+  it('renders "Sign In" links pointing to /login when dev bypass is off', () => {
+    process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH = "false";
     render(<HomePage />);
-    const signInLink = screen.getByRole("link", { name: /sign in/i });
-    expect(signInLink).toHaveAttribute("href", "/login");
+    const signInLinks = screen.getAllByRole("link", { name: /sign in/i });
+    expect(signInLinks.length).toBeGreaterThanOrEqual(1);
+    signInLinks.forEach((link) => {
+      expect(link).toHaveAttribute("href", "/login");
+    });
+  });
+
+  it('does not render "Sign In" when dev bypass is on', () => {
+    process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH = "true";
+    render(<HomePage />);
+    expect(
+      screen.queryByRole("link", { name: /sign in/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders "How it works" section', () => {
+    render(<HomePage />);
+    expect(
+      screen.getByRole("heading", { name: /how it works/i }),
+    ).toBeInTheDocument();
   });
 });

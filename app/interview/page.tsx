@@ -269,10 +269,10 @@ function InterviewContent() {
           <h2 className="text-2xl font-bold">Interview Ended</h2>
           {endReason && <p className="mt-2 text-gray-400">{endReason}</p>}
           <a
-            href="/dashboard"
+            href="/"
             className="mt-6 rounded-xl bg-purple-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-purple-500"
           >
-            Back to Dashboard
+            Back to Home
           </a>
         </div>
       )}

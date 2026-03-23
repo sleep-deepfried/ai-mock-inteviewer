@@ -62,6 +62,6 @@ describe("Login Page", () => {
       signOut: vi.fn(),
     });
     render(<LoginPage />);
-    expect(mockReplace).toHaveBeenCalledWith("/dashboard");
+    expect(mockReplace).toHaveBeenCalledWith("/");
   });
 });

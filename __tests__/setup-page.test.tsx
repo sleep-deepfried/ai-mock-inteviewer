@@ -74,7 +74,9 @@ describe("Interview Setup Page", () => {
     fireEvent.click(btn);
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith("/interview?sessionId=abc-123");
+      expect(mockPush).toHaveBeenCalledWith(
+        "/interview?sessionId=abc-123&role=Software%20Engineer",
+      );
     });
   });
 });

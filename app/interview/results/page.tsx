@@ -88,10 +88,10 @@ function ResultsContent() {
       <main className="flex min-h-screen flex-col items-center justify-center gap-4 px-4">
         <p className="text-red-400">{error || "No results available"}</p>
         <Link
-          href="/dashboard"
+          href="/"
           className="rounded-xl bg-purple-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-purple-500"
         >
-          Back to Dashboard
+          Back to Home
         </Link>
       </main>
     );
@@ -100,11 +100,11 @@ function ResultsContent() {
   return (
     <main className="mx-auto min-h-screen max-w-3xl px-4 py-8 sm:px-6 sm:py-12">
       <Link
-        href="/dashboard"
+        href="/"
         className="mb-6 inline-flex items-center gap-2 text-sm text-gray-400 transition hover:text-white"
       >
         <ArrowLeft className="h-4 w-4" />
-        Back to Dashboard
+        Back to Home
       </Link>
 
       {/* Overall Score */}
@@ -187,10 +187,10 @@ function ResultsContent() {
           Start New Interview
         </Link>
         <Link
-          href="/dashboard"
+          href="/"
           className="rounded-xl border border-white/10 px-6 py-3 text-center text-sm font-medium text-gray-300 transition hover:bg-white/5"
         >
-          Back to Dashboard
+          Back to Home
         </Link>
       </div>
     </main>
