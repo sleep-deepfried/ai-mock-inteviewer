@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 import { getAuthUser } from "@/lib/auth";
+import { appendInterviewReviewRow } from "@/lib/sheets";
 
 declare const process: { env: Record<string, string | undefined> };
 
@@ -17,10 +18,11 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { transcript, jobRole, duration } = body as {
+    const { transcript, jobRole, duration, review } = body as {
       transcript: TranscriptEntry[];
       jobRole: string;
       duration: number;
+      review?: { rating: number; comment?: string };
     };
 
     if (!transcript || !Array.isArray(transcript) || transcript.length === 0) {
@@ -84,6 +86,26 @@ ${conversationText}`;
     }
 
     const feedback = JSON.parse(jsonMatch[0]);
+
+    if (
+      review &&
+      typeof review.rating === "number" &&
+      review.rating > 0
+    ) {
+      try {
+        await appendInterviewReviewRow({
+          userEmail: user.email ?? "",
+          userId: user.id,
+          rating: review.rating,
+          comment: typeof review.comment === "string" ? review.comment : "",
+          jobRole,
+          durationSec: duration,
+        });
+      } catch (sheetErr) {
+        console.error("[sheets] Failed to append interview review:", sheetErr);
+      }
+    }
+
     return NextResponse.json(feedback);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

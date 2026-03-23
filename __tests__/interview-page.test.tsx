@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockPush = vi.fn();
@@ -25,31 +25,21 @@ vi.mock("@/context/auth-context", () => ({
 const defaultInterviewState = {
   status: "active" as const,
   aiState: "listening" as const,
-  transcript: [],
+  transcript: [] as { role: "user" | "ai"; text: string; timestamp: number }[],
   timeRemaining: 900,
   error: null,
   endReason: null,
-  isMicOn: true,
+  isMicOn: false,
   toggleMic: vi.fn(),
   endSession: vi.fn(),
-  sendTextMessage: vi.fn(),
   analyserNode: null,
+  hintThinking: vi.fn(),
+  sendActivityStart: vi.fn(),
+  sendActivityEnd: vi.fn(),
 };
 
 vi.mock("@/hooks/use-interview", () => ({
-  useInterview: vi.fn().mockReturnValue({
-    status: "active",
-    aiState: "listening",
-    transcript: [],
-    timeRemaining: 900,
-    error: null,
-    endReason: null,
-    isMicOn: true,
-    toggleMic: vi.fn(),
-    endSession: vi.fn(),
-    sendTextMessage: vi.fn(),
-    analyserNode: null,
-  }),
+  useInterview: vi.fn(),
 }));
 
 import InterviewPage from "@/app/interview/page";
@@ -66,7 +56,7 @@ describe("Interview Page", () => {
   it("renders mic toggle, camera toggle, and end call buttons", () => {
     render(<InterviewPage />);
     expect(
-      screen.getByRole("button", { name: /mute microphone/i }),
+      screen.getByRole("button", { name: /unmute microphone/i }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /turn on camera/i }),
@@ -90,7 +80,7 @@ describe("Interview Page", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("Connection lost");
   });
 
-  it("renders end-of-session overlay when status is ended", () => {
+  it("renders end-of-session overlay when status is ended without transcript", () => {
     (useInterview as ReturnType<typeof vi.fn>).mockReturnValue({
       ...defaultInterviewState,
       status: "ended",
@@ -99,5 +89,34 @@ describe("Interview Page", () => {
     render(<InterviewPage />);
     expect(screen.getByText("Interview Ended")).toBeInTheDocument();
     expect(screen.getByText("Session time limit reached")).toBeInTheDocument();
+  });
+
+  it("shows review modal when interview ends with transcript", () => {
+    (useInterview as ReturnType<typeof vi.fn>).mockReturnValue({
+      ...defaultInterviewState,
+      status: "ended",
+      endReason: "Session time limit reached",
+      transcript: [
+        { role: "user" as const, text: "Hello", timestamp: Date.now() },
+      ],
+    });
+    render(<InterviewPage />);
+    expect(
+      screen.getByRole("dialog", { name: /how was your interview/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("navigates to results when skipping review", () => {
+    (useInterview as ReturnType<typeof vi.fn>).mockReturnValue({
+      ...defaultInterviewState,
+      status: "ended",
+      endReason: "Interview ended by user",
+      transcript: [
+        { role: "user" as const, text: "Hello", timestamp: Date.now() },
+      ],
+    });
+    render(<InterviewPage />);
+    fireEvent.click(screen.getByRole("button", { name: /^skip$/i }));
+    expect(mockPush).toHaveBeenCalledWith("/interview/results");
   });
 });

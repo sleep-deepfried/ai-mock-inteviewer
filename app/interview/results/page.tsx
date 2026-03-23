@@ -32,15 +32,30 @@ function scoreBg(score: number): string {
   return "bg-red-500";
 }
 
+const RESULTS_STORAGE_KEY = "interview-results-data";
+/** Prevents double POST in React Strict Mode (dev): second effect sees pending only. */
+const RESULTS_PENDING_KEY = "interview-results-pending";
+
 function ResultsContent() {
   const searchParams = useSearchParams();
   const [results, setResults] = useState<InterviewResults | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [thankYouReview, setThankYouReview] = useState<{
+    rating: number;
+    comment?: string;
+  } | null>(null);
 
   useEffect(() => {
-    const stored = sessionStorage.getItem("interview-results-data");
-    if (!stored) {
+    let payload: string | null = sessionStorage.getItem(RESULTS_STORAGE_KEY);
+
+    if (payload) {
+      sessionStorage.removeItem(RESULTS_STORAGE_KEY);
+      sessionStorage.setItem(RESULTS_PENDING_KEY, payload);
+    } else if (sessionStorage.getItem(RESULTS_PENDING_KEY)) {
+      // Another effect already claimed the payload (e.g. Strict Mode double-invoke).
+      return;
+    } else {
       Promise.resolve().then(() => {
         setError(
           "No interview data found. Please complete an interview first.",
@@ -50,12 +65,24 @@ function ResultsContent() {
       return;
     }
 
-    const { transcript, jobRole, duration } = JSON.parse(stored);
+    const { transcript, jobRole, duration, review } = JSON.parse(payload) as {
+      transcript: unknown;
+      jobRole: string;
+      duration: number;
+      review?: { rating: number; comment?: string };
+    };
+
+    if (review?.rating) {
+      setThankYouReview({
+        rating: review.rating,
+        comment: review.comment,
+      });
+    }
 
     fetch("/api/interview/results", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ transcript, jobRole, duration }),
+      body: JSON.stringify({ transcript, jobRole, duration, review }),
     })
       .then(async (res) => {
         if (!res.ok) {
@@ -66,9 +93,14 @@ function ResultsContent() {
       })
       .then((data) => {
         setResults(data);
-        sessionStorage.removeItem("interview-results-data");
+        sessionStorage.removeItem(RESULTS_PENDING_KEY);
       })
       .catch((err) => {
+        const pending = sessionStorage.getItem(RESULTS_PENDING_KEY);
+        if (pending) {
+          sessionStorage.removeItem(RESULTS_PENDING_KEY);
+          sessionStorage.setItem(RESULTS_STORAGE_KEY, pending);
+        }
         setError(err instanceof Error ? err.message : "Something went wrong");
       })
       .finally(() => setLoading(false));
@@ -106,6 +138,18 @@ function ResultsContent() {
         <ArrowLeft className="h-4 w-4" />
         Back to Home
       </Link>
+
+      {thankYouReview && (
+        <div
+          className="mb-6 rounded-xl border border-purple-500/30 bg-purple-500/10 px-4 py-3 text-sm text-purple-200"
+          role="status"
+        >
+          Thanks for your {thankYouReview.rating}-star feedback
+          {thankYouReview.comment
+            ? " — we read every comment."
+            : "."}
+        </div>
+      )}
 
       {/* Overall Score */}
       <div className="mb-8 text-center">

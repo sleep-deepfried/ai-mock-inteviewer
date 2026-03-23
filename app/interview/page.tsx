@@ -4,6 +4,10 @@ import { useState, useRef, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { ProtectedRoute } from "@/components/protected-route";
 import { AIStateIndicator } from "@/components/ai-state-indicator";
+import {
+  InterviewReviewModal,
+  type InterviewReviewPayload,
+} from "@/components/interview-review-modal";
 import { useInterview } from "@/hooks/use-interview";
 import { Mic, MicOff, Video, VideoOff, PhoneOff } from "lucide-react";
 
@@ -37,24 +41,36 @@ function InterviewContent() {
 
   const [isCameraOn, setIsCameraOn] = useState(false);
   const [userSpeaking, setUserSpeaking] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const userSpeakingRef = useRef(false);
   const hasRedirected = useRef(false);
+  const reviewModalOpened = useRef(false);
   const thinkHintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Redirect to results when interview ends
   useEffect(() => {
-    if (status !== "ended" || hasRedirected.current) return;
-    if (transcript.length === 0) return;
-    hasRedirected.current = true;
+    if (status !== "ended" || transcript.length === 0) return;
+    if (reviewModalOpened.current) return;
+    reviewModalOpened.current = true;
+    setShowReviewModal(true);
+  }, [status, transcript.length]);
 
+  function goToResults(review: InterviewReviewPayload | null) {
+    if (hasRedirected.current) return;
+    hasRedirected.current = true;
+    setShowReviewModal(false);
     const duration = 15 * 60 - timeRemaining;
     sessionStorage.setItem(
       "interview-results-data",
-      JSON.stringify({ transcript, jobRole, duration }),
+      JSON.stringify({
+        transcript,
+        jobRole,
+        duration,
+        ...(review && review.rating > 0 ? { review } : {}),
+      }),
     );
     router.push("/interview/results");
-  }, [status, transcript, timeRemaining, jobRole, router]);
+  }
 
   // Detect user speaking via analyser node volume + send activity signals
   useEffect(() => {
@@ -263,8 +279,8 @@ function InterviewContent() {
         </button>
       </div>
 
-      {/* End-of-Session Overlay */}
-      {status === "ended" && (
+      {/* End-of-session: no transcript — simple overlay */}
+      {status === "ended" && transcript.length === 0 && (
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-950/90 backdrop-blur-sm">
           <h2 className="text-2xl font-bold">Interview Ended</h2>
           {endReason && <p className="mt-2 text-gray-400">{endReason}</p>}
@@ -276,6 +292,13 @@ function InterviewContent() {
           </a>
         </div>
       )}
+
+      <InterviewReviewModal
+        open={showReviewModal}
+        endReason={endReason}
+        onSkip={() => goToResults(null)}
+        onContinue={(payload) => goToResults(payload)}
+      />
     </main>
   );
 }

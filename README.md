@@ -1,5 +1,25 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Interview feedback (Google Sheets)
+
+When a user submits a star rating after an interview, the API can append a row to a Google Sheet.
+
+1. In [Google Cloud Console](https://console.cloud.google.com/), enable **Google Sheets API** for your project.
+2. Create a **service account**, then add a JSON key. Copy the entire JSON object.
+3. Create a Google Sheet and **share** it with the service account email (role: **Editor**).
+4. Copy the spreadsheet ID from the URL (`https://docs.google.com/spreadsheets/d/`**`SPREADSHEET_ID`**`/edit`).
+5. Add a worksheet named **`Reviews`** (or set `GOOGLE_SHEETS_TAB_NAME`), optionally with a header row:
+
+   | Timestamp | User email | User id | Rating | Comment | Job role | Duration (s) |
+
+6. Set environment variables (e.g. in `.env.local`):
+
+   - `GOOGLE_SHEETS_SPREADSHEET_ID` — the spreadsheet ID
+   - `GOOGLE_SERVICE_ACCOUNT_JSON` — single-line JSON string of the service account key (in hosted envs, paste the minified JSON or use a secret manager)
+   - `GOOGLE_SHEETS_TAB_NAME` — optional; defaults to `Reviews`
+
+If these variables are missing, reviews are skipped and the app still returns interview results.
+
 ## Getting Started
 
 First, run the development server:

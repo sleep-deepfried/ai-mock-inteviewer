@@ -38,7 +38,8 @@ export function useInterview(sessionId: string | null): UseInterviewReturn {
   const [timeRemaining, setTimeRemaining] = useState(SESSION_DURATION);
   const [error, setError] = useState<string | null>(null);
   const [endReason, setEndReason] = useState<string | null>(null);
-  const [isMicOn, setIsMicOn] = useState(true);
+  /** Start muted so users opt in before sending audio. */
+  const [isMicOn, setIsMicOn] = useState(false);
   const [analyserNode, setAnalyserNode] = useState<AnalyserNode | null>(null);
   const transcriptRef = useRef<TranscriptEntry[]>([]);
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
@@ -50,6 +51,11 @@ export function useInterview(sessionId: string | null): UseInterviewReturn {
   const tokenCacheRef = useRef<Map<string, string>>(new Map());
   const thinkingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const userHasSpokenRef = useRef(false);
+
+  useEffect(() => {
+    if (!sessionId) return;
+    setIsMicOn(false);
+  }, [sessionId]);
 
   // Start session
   useEffect(() => {
@@ -148,8 +154,8 @@ export function useInterview(sessionId: string | null): UseInterviewReturn {
         capture.onPcmChunk = (chunk) => {
           client.sendAudio(chunk);
         };
-        await capture.start();
-        setAnalyserNode(capture.getAnalyserNode());
+        // Mic starts muted: capture begins only when the user unmutes (toggleMic).
+        setAnalyserNode(null);
 
         // Initialize Audio Playback
         playbackRef.current = new AudioPlayback();
