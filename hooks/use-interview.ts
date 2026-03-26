@@ -88,6 +88,12 @@ export function useInterview(sessionId: string | null): UseInterviewReturn {
         }
         if (cancelled) return;
 
+        // Playback must exist before connect() — the model can emit audio immediately.
+        const playback = new AudioPlayback();
+        playbackRef.current = playback;
+        await playback.warmUp();
+        if (cancelled) return;
+
         // Initialize Gemini Live Client
         const client = new GeminiLiveClient(token);
         clientRef.current = client;
@@ -98,7 +104,7 @@ export function useInterview(sessionId: string | null): UseInterviewReturn {
             thinkingTimerRef.current = null;
           }
           setAiState("speaking");
-          playbackRef.current?.play(pcmData);
+          void playback.play(pcmData);
         };
 
         client.onTurnComplete = () => {
@@ -156,9 +162,6 @@ export function useInterview(sessionId: string | null): UseInterviewReturn {
         };
         // Mic starts muted: capture begins only when the user unmutes (toggleMic).
         setAnalyserNode(null);
-
-        // Initialize Audio Playback
-        playbackRef.current = new AudioPlayback();
 
         setStatus("active");
         setAiState("listening");

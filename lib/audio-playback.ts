@@ -60,6 +60,8 @@ export class AudioPlayback {
   private useFallback = false;
   private sources: AudioBufferSourceNode[] = [];
   private nextStartTime = 0;
+  /** Leftover byte when chunks split mid–16-bit sample (prevents garbled audio). */
+  private pcmCarry = new Uint8Array(0);
 
   private async init(): Promise<void> {
     if (this.initialized) return;
@@ -120,10 +122,47 @@ registerProcessor("pcm-playback-processor", P);`;
     }
   }
 
+  /**
+   * Initialize output path before the model can emit audio (avoids dropping the first chunks).
+   */
+  async warmUp(): Promise<void> {
+    await this.init();
+    if (this.audioContext?.state === "suspended") {
+      try {
+        await this.audioContext.resume();
+      } catch {
+        // Autoplay policy may block until a gesture; later play() still works.
+      }
+    }
+  }
+
   async play(pcmData: ArrayBuffer): Promise<void> {
     await this.init();
 
-    const float32 = pcmToFloat32(pcmData);
+    const incoming = new Uint8Array(pcmData);
+    let combined: Uint8Array;
+    if (this.pcmCarry.length > 0) {
+      combined = new Uint8Array(this.pcmCarry.length + incoming.length);
+      combined.set(this.pcmCarry, 0);
+      combined.set(incoming, this.pcmCarry.length);
+      this.pcmCarry = new Uint8Array(0);
+    } else {
+      combined = incoming;
+    }
+
+    const evenLength = combined.length - (combined.length % 2);
+    if (evenLength < combined.length) {
+      this.pcmCarry = combined.slice(evenLength);
+    }
+
+    if (evenLength === 0) return;
+
+    const aligned = combined.subarray(0, evenLength);
+    const pcmSlice = aligned.buffer.slice(
+      aligned.byteOffset,
+      aligned.byteOffset + aligned.byteLength,
+    );
+    const float32 = pcmToFloat32(pcmSlice);
 
     if (this.useFallback) {
       // Fallback: createBufferSource scheduling
@@ -153,6 +192,7 @@ registerProcessor("pcm-playback-processor", P);`;
   }
 
   stop(): void {
+    this.pcmCarry = new Uint8Array(0);
     if (this.useFallback) {
       for (const source of this.sources) {
         try { source.stop(); } catch { /* already stopped */ }

@@ -139,19 +139,28 @@ export class GeminiLiveClient {
     const serverContent = message.serverContent;
     if (serverContent) {
       const modelTurn = serverContent.modelTurn;
-      if (modelTurn?.parts) {
+      if (modelTurn?.parts && this.onAudio) {
+        let total = 0;
+        const chunks: Uint8Array[] = [];
         for (const part of modelTurn.parts) {
           if (part.inlineData?.data && typeof part.inlineData.data === "string") {
-            // Decode base64 audio data to ArrayBuffer
             const binaryStr = atob(part.inlineData.data);
             const bytes = new Uint8Array(binaryStr.length);
             for (let i = 0; i < binaryStr.length; i++) {
               bytes[i] = binaryStr.charCodeAt(i);
             }
-            if (this.onAudio) {
-              this.onAudio(bytes.buffer);
-            }
+            chunks.push(bytes);
+            total += bytes.length;
           }
+        }
+        if (total > 0) {
+          const merged = new Uint8Array(total);
+          let offset = 0;
+          for (const c of chunks) {
+            merged.set(c, offset);
+            offset += c.length;
+          }
+          this.onAudio(merged.buffer);
         }
       }
 
