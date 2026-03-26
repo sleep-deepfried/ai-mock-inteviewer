@@ -17,6 +17,11 @@ function formatTime(seconds: number): string {
   return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
 }
 
+/** RMS above this counts as speaking; higher reduces false triggers from room noise. */
+const SPEAKING_RMS_THRESHOLD = 0.055;
+/** Time below threshold after speech before we tell Gemini the user stopped (activityEnd). */
+const SILENCE_BEFORE_ACTIVITY_END_MS = 10100;
+
 function InterviewContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -92,7 +97,7 @@ function InterviewContent() {
         sum += v * v;
       }
       const rms = Math.sqrt(sum / dataArray.length);
-      const speaking = rms > 0.02;
+      const speaking = rms > SPEAKING_RMS_THRESHOLD;
       if (speaking !== userSpeakingRef.current) {
         userSpeakingRef.current = speaking;
         setUserSpeaking(speaking);
@@ -109,12 +114,11 @@ function InterviewContent() {
             thinkHintTimerRef.current = null;
           }
         } else if (activityActive) {
-          // User stopped speaking — debounce 500ms before sending activityEnd
           thinkHintTimerRef.current = setTimeout(() => {
             activityActive = false;
             sendActivityEnd();
             hintThinking();
-          }, 500);
+          }, SILENCE_BEFORE_ACTIVITY_END_MS);
         }
       }
       rafId = requestAnimationFrame(check);

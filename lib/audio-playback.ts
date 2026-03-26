@@ -161,7 +161,7 @@ registerProcessor("pcm-playback-processor", P);`;
     const pcmSlice = aligned.buffer.slice(
       aligned.byteOffset,
       aligned.byteOffset + aligned.byteLength,
-    );
+    ) as ArrayBuffer;
     const float32 = pcmToFloat32(pcmSlice);
 
     if (this.useFallback) {
