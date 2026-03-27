@@ -53,7 +53,7 @@ export function LandingFaq({ items, focusRing }: LandingFaqProps) {
                 id={panelId}
                 role="region"
                 aria-labelledby={headerId}
-                className="border-t border-white/10 px-5 pb-5 pt-0 sm:px-7 sm:pb-7"
+                className="px-5 pb-5 pt-0 sm:px-7 sm:pb-7"
               >
                 <p className="pt-4 text-base leading-relaxed text-zinc-400 sm:pt-5 sm:text-lg">
                   {item.answer}

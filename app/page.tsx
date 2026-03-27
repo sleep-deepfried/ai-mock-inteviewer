@@ -62,10 +62,10 @@ export default function HomePage() {
     process.env.NEXT_PUBLIC_APP_STAGE.toLowerCase() === "beta";
 
   return (
-    <main className="relative flex min-h-dvh flex-col bg-black text-white">
-      {/* Full-bleed hero canvas under the sticky bar (header sits above plain main bg in DOM otherwise). */}
+    <main className="relative flex min-h-dvh flex-col bg-[#050508] text-white">
+      {/* Full-page stitch canvas (fills main height; content stacks above at z-10+). */}
       <div
-        className="landing-stitch pointer-events-none absolute inset-x-0 top-0 z-0 min-h-dvh"
+        className="landing-stitch pointer-events-none absolute inset-0 z-0"
         aria-hidden
       />
       <header className="sticky top-0 z-50 bg-zinc-950/20 backdrop-blur-2xl backdrop-saturate-150 supports-[backdrop-filter]:bg-zinc-950/[0.12]">
@@ -136,7 +136,7 @@ export default function HomePage() {
       </section>
 
       <section
-        className="border-t border-white/10 bg-black px-4 py-16 sm:px-6 sm:py-20"
+        className="relative z-10 px-4 py-16 sm:px-6 sm:py-20"
         aria-labelledby="bento-heading"
       >
         <div className="mx-auto max-w-5xl">
@@ -171,7 +171,7 @@ export default function HomePage() {
       </section>
 
       <section
-        className="border-t border-white/10 bg-black px-4 py-20 sm:px-6 sm:py-28"
+        className="relative z-10 px-4 py-20 sm:px-6 sm:py-28"
         aria-labelledby="faq-heading"
       >
         <div className="mx-auto max-w-5xl">
@@ -190,8 +190,19 @@ export default function HomePage() {
         </div>
       </section>
 
-      <footer className="border-t border-white/10 px-4 py-8 text-center text-xs text-zinc-600 sm:px-6">
-        © {new Date().getFullYear()} AI Mock Interviewer
+      <footer
+        className="relative z-10 px-4 py-8 text-center text-xs leading-relaxed text-zinc-600 sm:px-6"
+        role="contentinfo"
+      >
+        <p>
+          © {new Date().getFullYear()} AI Mock Interviewer
+          <span className="mx-1.5 text-zinc-700" aria-hidden>
+            ·
+          </span>
+          <span className="text-zinc-500">
+            Earl John Pulido, in collaboration with Tutorial Dojo
+          </span>
+        </p>
       </footer>
     </main>
   );

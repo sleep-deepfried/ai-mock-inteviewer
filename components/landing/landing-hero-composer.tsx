@@ -159,7 +159,7 @@ export function LandingHeroComposer({ focusRing }: LandingHeroComposerProps) {
         ) : null}
       </div>
 
-      <div className="border-t border-white/10 px-5 pb-1 pt-3 sm:px-7 sm:pb-2 sm:pt-4">
+      <div className="px-5 pb-1 pt-3 sm:px-7 sm:pb-2 sm:pt-4">
         <p
           id="landing-role-suggestions-label"
           className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500"
