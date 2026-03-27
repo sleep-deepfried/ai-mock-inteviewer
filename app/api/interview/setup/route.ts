@@ -9,7 +9,11 @@
 import { NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { parseResume } from "@/lib/resume-parser";
-import { sessionStore, type SessionEntry } from "@/lib/session-store";
+import {
+  sessionStore,
+  type SessionEntry,
+  type InterviewStyle,
+} from "@/lib/session-store";
 import { getAuthUser } from "@/lib/auth";
 
 const ALLOWED_MIME_TYPES = new Set([
@@ -48,6 +52,15 @@ export async function POST(request: Request) {
     const role = formData.get("role");
     const description = formData.get("description");
     const resume = formData.get("resume");
+    const interviewStyleRaw = formData.get("interviewStyle");
+
+    let interviewStyle: InterviewStyle = "technical";
+    if (
+      typeof interviewStyleRaw === "string" &&
+      (interviewStyleRaw === "behavioral" || interviewStyleRaw === "technical")
+    ) {
+      interviewStyle = interviewStyleRaw;
+    }
 
     // Validate required field
     if (!role || typeof role !== "string" || !role.trim()) {
@@ -86,7 +99,9 @@ export async function POST(request: Request) {
       jobRole: role.trim(),
       jobDescription: typeof description === "string" ? description.trim() : "",
       resumeText,
+      interviewStyle,
       createdAt: Date.now(),
+      messages: [],
     };
 
     sessionStore.store(sessionId, entry);

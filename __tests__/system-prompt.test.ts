@@ -21,11 +21,13 @@ describe("System prompt unit tests", () => {
       jobRole: "Backend Engineer",
       jobDescription: "",
       resumeText: "5 years of Go experience",
+      interviewStyle: "technical",
     });
 
     expect(result).toContain("Backend Engineer");
     expect(result).toContain("5 years of Go experience");
     expect(result).toContain("Interview Context:");
+    expect(result).toContain("TECHNICAL");
   });
 
   it("includes all interview context fields when provided", () => {
@@ -33,6 +35,7 @@ describe("System prompt unit tests", () => {
       jobRole: "Frontend Developer",
       jobDescription: "React and TypeScript required",
       resumeText: "Built dashboards with React",
+      interviewStyle: "technical",
     });
 
     expect(result).toContain("Alex Chen");
@@ -40,5 +43,18 @@ describe("System prompt unit tests", () => {
     expect(result).toContain("React and TypeScript required");
     expect(result).toContain("Built dashboards with React");
     expect(result).toContain("IMPORTANT: Tailor your questions");
+    expect(result).toContain("TECHNICAL");
+  });
+
+  it("uses behavioral style block when interviewStyle is behavioral", () => {
+    const result = buildSystemInstruction({
+      jobRole: "PM",
+      jobDescription: "",
+      resumeText: "Shipped three products",
+      interviewStyle: "behavioral",
+    });
+
+    expect(result).toContain("Interview style for this session — BEHAVIORAL");
+    expect(result).toContain("STAR");
   });
 });

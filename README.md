@@ -20,6 +20,19 @@ When a user submits a star rating after an interview, the API can append a row t
 
 If these variables are missing, reviews are skipped and the app still returns interview results.
 
+## Voice interview (Gemini Live)
+
+The mock interview room uses the **Gemini Live API** in the browser (`gemini-3.1-flash-live-preview`): bidirectional audio over WebSockets, with **ephemeral tokens** minted by `POST /api/interview/live-token` so the API key stays on the server. PCM mic capture is 16 kHz; model audio plays at 24 kHz.
+
+Server-only dialogue (`POST /api/interview/chat`, `gemini-2.5-flash-lite`) remains available for other callers; the in-room experience is Live-first.
+
+Set:
+
+- `GEMINI_API_KEY` — Google AI Studio / Gemini API key (Live tokens, Live session, and post-interview scoring).
+- `NEXT_PUBLIC_APP_STAGE=beta` — optional; shows a **Beta** pill on the **landing** header and in the **interview** header for testers.
+
+Optional **ElevenLabs** (`ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID`) — only if you still call `POST /api/interview/tts` from custom code; the default interview hook does not use it.
+
 ## Getting Started
 
 First, run the development server:

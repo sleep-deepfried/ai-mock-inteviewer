@@ -141,6 +141,32 @@ describe("POST /api/interview/setup", () => {
     expect(body.error).toContain("Corrupt PDF");
   });
 
+  it("stores interviewStyle behavioral when provided", async () => {
+    const req = buildMockRequest({
+      role: "Engineer",
+      interviewStyle: "behavioral",
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    expect(mockStore).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ interviewStyle: "behavioral" }),
+    );
+  });
+
+  it("defaults interviewStyle to technical when invalid or missing", async () => {
+    const req = buildMockRequest({
+      role: "Engineer",
+      interviewStyle: "nope",
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    expect(mockStore).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ interviewStyle: "technical" }),
+    );
+  });
+
   it("returns 200 with sessionId when resume is valid", async () => {
     mockParseResume.mockResolvedValue("Extracted resume text");
     const file = new File(["pdf-content"], "resume.pdf", {

@@ -1,8 +1,21 @@
+export type ChatTurnRole = "user" | "model";
+
+export type InterviewStyle = "behavioral" | "technical";
+
+export interface ChatTurn {
+  role: ChatTurnRole;
+  text: string;
+}
+
 export interface SessionEntry {
   jobRole: string;
   jobDescription: string;
   resumeText: string;
+  /** Drives system-prompt emphasis (behavioral vs technical questions). */
+  interviewStyle: InterviewStyle;
   createdAt: number; // Date.now()
+  /** Interview turns; appended by POST /api/interview/chat. */
+  messages: ChatTurn[];
 }
 
 const TTL_MS = 30 * 60 * 1000; // 30 minutes
@@ -29,7 +42,7 @@ export class SessionStore {
     return entry;
   }
 
-  /** Remove a session entry (call after successful token generation). */
+  /** Remove a session entry (e.g. when the interview ends). */
   delete(sessionId: string): void {
     this.entries.delete(sessionId);
   }

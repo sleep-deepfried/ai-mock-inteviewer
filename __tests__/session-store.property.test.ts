@@ -2,12 +2,12 @@ import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import * as fc from "fast-check";
 import { SessionStore } from "@/lib/session-store";
 
-// Arbitrary for generating valid session entries
 const sessionEntryArb = fc.record({
   jobRole: fc.string({ minLength: 1 }),
   jobDescription: fc.string(),
   resumeText: fc.string(),
   createdAt: fc.constant(Date.now()),
+  messages: fc.constant([] as { role: "user" | "model"; text: string }[]),
 });
 
 const sessionIdArb = fc.uuid();
@@ -21,8 +21,6 @@ describe("SessionStore property tests", () => {
     vi.useRealTimers();
   });
 
-  // Feature: nextjs-gemini-live-migration, Property 1: Session store round-trip
-  // **Validates: Requirements 3.5, 14.1, 14.2**
   it("Property 1: round-trip — store then get returns equivalent context", () => {
     fc.assert(
       fc.property(sessionIdArb, sessionEntryArb, (id, entry) => {
@@ -34,13 +32,12 @@ describe("SessionStore property tests", () => {
         expect(retrieved!.jobDescription).toBe(entry.jobDescription);
         expect(retrieved!.resumeText).toBe(entry.resumeText);
         expect(retrieved!.createdAt).toBe(entry.createdAt);
+        expect(retrieved!.messages).toEqual(entry.messages);
       }),
       { numRuns: 100 }
     );
   });
 
-  // Feature: nextjs-gemini-live-migration, Property 2: Session store delete after retrieval
-  // **Validates: Requirements 14.2**
   it("Property 2: delete — get returns entry, delete removes it, second get returns null", () => {
     fc.assert(
       fc.property(sessionIdArb, sessionEntryArb, (id, entry) => {
@@ -56,8 +53,6 @@ describe("SessionStore property tests", () => {
     );
   });
 
-  // Feature: nextjs-gemini-live-migration, Property 3: Session store TTL enforcement
-  // **Validates: Requirements 14.1, 14.3, 14.4**
   it("Property 3: TTL — get returns null for entries older than 30 minutes", () => {
     fc.assert(
       fc.property(
@@ -67,7 +62,6 @@ describe("SessionStore property tests", () => {
         (id, entry, extraMinutes) => {
           const freshStore = new SessionStore();
           freshStore.store(id, entry);
-          // Advance time past 30 minutes
           vi.advanceTimersByTime((30 + extraMinutes) * 60 * 1000);
           const result = freshStore.get(id);
           expect(result).toBeNull();
@@ -77,8 +71,6 @@ describe("SessionStore property tests", () => {
     );
   });
 
-  // Feature: nextjs-gemini-live-migration, Property 4: Session store lazy cleanup
-  // **Validates: Requirements 14.3**
   it("Property 4: lazy cleanup — store() removes all expired entries", () => {
     fc.assert(
       fc.property(
@@ -86,31 +78,27 @@ describe("SessionStore property tests", () => {
         sessionIdArb,
         sessionEntryArb,
         (expiredIds, newId, newEntry) => {
-          // Ensure newId is not in expiredIds
           const uniqueExpiredIds = [...new Set(expiredIds)].filter(
             (eid) => eid !== newId
           );
-          if (uniqueExpiredIds.length === 0) return; // skip degenerate case
+          if (uniqueExpiredIds.length === 0) return;
 
           const freshStore = new SessionStore();
 
-          // Store expired entries
           for (const eid of uniqueExpiredIds) {
             freshStore.store(eid, {
               jobRole: "expired",
               jobDescription: "",
               resumeText: "",
               createdAt: Date.now(),
+              messages: [],
             });
           }
 
-          // Advance time past TTL
           vi.advanceTimersByTime(31 * 60 * 1000);
 
-          // Store a new entry — this triggers lazy cleanup
           freshStore.store(newId, newEntry);
 
-          // Only the new entry should remain
           expect(freshStore.size).toBe(1);
         }
       ),

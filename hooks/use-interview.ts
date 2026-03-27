@@ -1,10 +1,16 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { GeminiLiveClient } from "@/lib/gemini-live-client";
-import { AudioCapture } from "@/lib/audio-capture";
 import { AudioPlayback } from "@/lib/audio-playback";
+import { AudioCapture } from "@/lib/audio-capture";
 import type { AIState } from "@/components/ai-state-indicator";
+import { GEMINI_LIVE_MODEL } from "@/lib/gemini-live-model";
+import {
+  FunctionResponse,
+  type LiveServerMessage,
+  type Session,
+} from "@google/genai";
+import { END_INTERVIEW_FUNCTION_NAME } from "@/lib/interview-live-tools";
 
 export type InterviewStatus = "idle" | "connecting" | "active" | "ended";
 
@@ -21,16 +27,39 @@ export interface UseInterviewReturn {
   error: string | null;
   endReason: string | null;
   isMicOn: boolean;
+  userSpeaking: boolean;
   toggleMic: () => void;
   endSession: () => void;
-  analyserNode: AnalyserNode | null;
+  dismissError: () => void;
   transcript: TranscriptEntry[];
-  hintThinking: () => void;
-  sendActivityStart: () => void;
-  sendActivityEnd: () => void;
 }
 
-const SESSION_DURATION = 15 * 60; // 15 minutes in seconds
+const SESSION_DURATION = 15 * 60;
+const SESSION_TIMEOUT_MS = 15 * 60 * 1000;
+
+const BOOTSTRAP_USER_TEXT =
+  "Please begin the interview by introducing yourself and asking your first question.";
+
+function base64ToArrayBuffer(base64: string): ArrayBuffer {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes.buffer;
+}
+
+/** Base64-encode PCM bytes without blowing the stack on large chunks. */
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const sub = bytes.subarray(i, i + chunkSize);
+    binary += String.fromCharCode(...sub);
+  }
+  return btoa(binary);
+}
 
 export function useInterview(sessionId: string | null): UseInterviewReturn {
   const [status, setStatus] = useState<InterviewStatus>("idle");
@@ -38,220 +67,421 @@ export function useInterview(sessionId: string | null): UseInterviewReturn {
   const [timeRemaining, setTimeRemaining] = useState(SESSION_DURATION);
   const [error, setError] = useState<string | null>(null);
   const [endReason, setEndReason] = useState<string | null>(null);
-  /** Start muted so users opt in before sending audio. */
   const [isMicOn, setIsMicOn] = useState(false);
-  const [analyserNode, setAnalyserNode] = useState<AnalyserNode | null>(null);
+  const [userSpeaking, setUserSpeaking] = useState(false);
   const transcriptRef = useRef<TranscriptEntry[]>([]);
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
 
-  const clientRef = useRef<GeminiLiveClient | null>(null);
-  const captureRef = useRef<AudioCapture | null>(null);
   const playbackRef = useRef<AudioPlayback | null>(null);
+  const liveSessionRef = useRef<Session | null>(null);
+  const captureRef = useRef<AudioCapture | null>(null);
+  const rafRef = useRef<number | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const tokenCacheRef = useRef<Map<string, string>>(new Map());
-  const thinkingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const userHasSpokenRef = useRef(false);
+  const sessionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sessionIdRef = useRef<string | null>(sessionId);
+  const inputTxDraftRef = useRef("");
+  const outputTxDraftRef = useRef("");
+
+  useEffect(() => {
+    sessionIdRef.current = sessionId;
+  }, [sessionId]);
 
   useEffect(() => {
     if (!sessionId) return;
     setIsMicOn(false);
+    setUserSpeaking(false);
   }, [sessionId]);
 
-  // Start session
   useEffect(() => {
     if (!sessionId) return;
 
     let cancelled = false;
+    const abortController = new AbortController();
+
+    const clearSessionTimeout = () => {
+      if (sessionTimeoutRef.current) {
+        clearTimeout(sessionTimeoutRef.current);
+        sessionTimeoutRef.current = null;
+      }
+    };
+
+    const cleanupCore = () => {
+      if (rafRef.current != null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      clearSessionTimeout();
+      captureRef.current?.stop();
+      captureRef.current = null;
+      playbackRef.current?.stop();
+      playbackRef.current = null;
+      try {
+        liveSessionRef.current?.close();
+      } catch {
+        /* ignore */
+      }
+      liveSessionRef.current = null;
+    };
+
+    const endInterviewLocal = (reason: string) => {
+      setStatus("ended");
+      setEndReason(reason);
+      void fetch("/api/interview/end", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId }),
+      });
+      cleanupCore();
+    };
+
+    const pushTranscript = (entry: TranscriptEntry) => {
+      transcriptRef.current = [...transcriptRef.current, entry];
+      setTranscript(transcriptRef.current);
+    };
+
+    const flushTranscriptionDrafts = () => {
+      const userText = inputTxDraftRef.current.trim();
+      inputTxDraftRef.current = "";
+      if (userText) {
+        pushTranscript({
+          role: "user",
+          text: userText,
+          timestamp: Date.now(),
+        });
+      }
+      const aiText = outputTxDraftRef.current.trim();
+      outputTxDraftRef.current = "";
+      if (aiText) {
+        pushTranscript({
+          role: "ai",
+          text: aiText,
+          timestamp: Date.now(),
+        });
+      }
+    };
+
+    const handleServerMessage = async (msg: LiveServerMessage) => {
+      if (cancelled) return;
+
+      const functionCalls = msg.toolCall?.functionCalls;
+      if (functionCalls?.length) {
+        let shouldEnd = false;
+        const session = liveSessionRef.current;
+        for (const fc of functionCalls) {
+          if (fc.name !== END_INTERVIEW_FUNCTION_NAME) continue;
+          shouldEnd = true;
+          if (session && fc.id && fc.name) {
+            try {
+              const functionResponse = new FunctionResponse();
+              functionResponse.id = fc.id;
+              functionResponse.name = fc.name;
+              functionResponse.response = {
+                output: { status: "interview_ended" },
+              };
+              session.sendToolResponse({ functionResponses: functionResponse });
+            } catch {
+              /* ignore */
+            }
+          }
+        }
+        if (shouldEnd) {
+          flushTranscriptionDrafts();
+          endInterviewLocal("Interview complete");
+          return;
+        }
+      }
+
+      const sc = msg.serverContent;
+      if (!sc) return;
+
+      if (sc.interrupted) {
+        playbackRef.current?.stop();
+        setAiState("listening");
+      }
+
+      if (sc.inputTranscription) {
+        const t = sc.inputTranscription;
+        if (typeof t.text === "string") {
+          inputTxDraftRef.current = t.text;
+        }
+        if (t.finished) {
+          const text = inputTxDraftRef.current.trim();
+          inputTxDraftRef.current = "";
+          if (text) {
+            pushTranscript({
+              role: "user",
+              text,
+              timestamp: Date.now(),
+            });
+          }
+        }
+      }
+
+      if (sc.outputTranscription) {
+        const t = sc.outputTranscription;
+        if (typeof t.text === "string") {
+          outputTxDraftRef.current = t.text;
+        }
+        if (t.finished) {
+          const text = outputTxDraftRef.current.trim();
+          outputTxDraftRef.current = "";
+          if (text) {
+            pushTranscript({
+              role: "ai",
+              text,
+              timestamp: Date.now(),
+            });
+          }
+        }
+      }
+
+      const parts = sc.modelTurn?.parts;
+      if (parts?.length && playbackRef.current) {
+        setAiState("speaking");
+        for (const part of parts) {
+          const data = part.inlineData?.data;
+          if (typeof data === "string" && data.length > 0) {
+            try {
+              const pcm = base64ToArrayBuffer(data);
+              await playbackRef.current.play(pcm);
+            } catch {
+              /* ignore bad chunk */
+            }
+          }
+        }
+      }
+
+      if (sc.turnComplete) {
+        setAiState("listening");
+      }
+    };
 
     const init = async () => {
       setStatus("connecting");
       setError(null);
+      inputTxDraftRef.current = "";
+      outputTxDraftRef.current = "";
 
       try {
-        // Fetch ephemeral token (cache for StrictMode double-mount)
-        let token = tokenCacheRef.current.get(sessionId);
-        if (!token) {
-          const tokenRes = await fetch("/api/token", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ sessionId }),
-          });
-
-          if (!tokenRes.ok) {
-            const data = await tokenRes.json();
-            throw new Error(data.error || "Failed to get session token");
-          }
-
-          const tokenData = await tokenRes.json();
-          token = tokenData.token as string;
-          tokenCacheRef.current.set(sessionId, token);
+        const tokenRes = await fetch("/api/interview/live-token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId }),
+          signal: abortController.signal,
+        });
+        if (!tokenRes.ok) {
+          const data = (await tokenRes.json()) as { error?: string };
+          throw new Error(data.error || "Failed to get live token");
         }
-        if (cancelled) return;
+        const { token, model } = (await tokenRes.json()) as {
+          token: string;
+          model: string;
+        };
+        if (cancelled || abortController.signal.aborted) return;
 
-        // Playback must exist before connect() — the model can emit audio immediately.
+        const { GoogleGenAI } = await import("@google/genai");
+        const ai = new GoogleGenAI({
+          apiKey: token,
+          httpOptions: { apiVersion: "v1alpha" },
+        });
+
         const playback = new AudioPlayback();
         playbackRef.current = playback;
         await playback.warmUp();
-        if (cancelled) return;
+        if (cancelled || abortController.signal.aborted) return;
 
-        // Initialize Gemini Live Client
-        const client = new GeminiLiveClient(token);
-        clientRef.current = client;
+        const session = await ai.live.connect({
+          model: model || GEMINI_LIVE_MODEL,
+          callbacks: {
+            onmessage: (e) => {
+              void handleServerMessage(e);
+            },
+            onerror: (ev) => {
+              const err = ev.error;
+              const msg =
+                err instanceof Error ? err.message : "Live connection error";
+              setError(msg);
+            },
+            onclose: () => {
+              if (!cancelled && sessionIdRef.current === sessionId) {
+                setError((prev) => prev ?? "Live session closed");
+              }
+            },
+          },
+        });
 
-        client.onAudio = (pcmData) => {
-          if (thinkingTimerRef.current) {
-            clearTimeout(thinkingTimerRef.current);
-            thinkingTimerRef.current = null;
-          }
-          setAiState("speaking");
-          void playback.play(pcmData);
-        };
-
-        client.onTurnComplete = () => {
-          setAiState("listening");
-          userHasSpokenRef.current = false;
-          // Only show "thinking" after turn complete if user speaks again
-          if (thinkingTimerRef.current) clearTimeout(thinkingTimerRef.current);
-        };
-
-        client.onInterrupted = () => {
-          if (thinkingTimerRef.current) {
-            clearTimeout(thinkingTimerRef.current);
-            thinkingTimerRef.current = null;
-          }
-          playbackRef.current?.stop();
-          setAiState("listening");
-        };
-
-        client.onError = (err) => {
-          setError(err.message);
-        };
-
-        client.onSessionTimeout = () => {
-          setStatus("ended");
-          setEndReason("Session time limit reached");
-          cleanup();
-        };
-
-        client.onInputTranscript = (text) => {
-          const entry: TranscriptEntry = { role: "user", text, timestamp: Date.now() };
-          transcriptRef.current = [...transcriptRef.current, entry];
-          setTranscript(transcriptRef.current);
-          userHasSpokenRef.current = true;
-          // User finished speaking — Gemini is now processing
-          setAiState("thinking");
-        };
-
-        client.onOutputTranscript = (text) => {
-          const entry: TranscriptEntry = { role: "ai", text, timestamp: Date.now() };
-          transcriptRef.current = [...transcriptRef.current, entry];
-          setTranscript(transcriptRef.current);
-        };
-
-        await client.connect();
-        if (cancelled) {
-          client.disconnect();
+        if (cancelled || abortController.signal.aborted) {
+          session.close();
           return;
         }
 
-        // Initialize Audio Capture
-        const capture = new AudioCapture();
-        captureRef.current = capture;
-        capture.onPcmChunk = (chunk) => {
-          client.sendAudio(chunk);
-        };
-        // Mic starts muted: capture begins only when the user unmutes (toggleMic).
-        setAnalyserNode(null);
+        liveSessionRef.current = session;
+        session.sendRealtimeInput({ text: BOOTSTRAP_USER_TEXT });
 
         setStatus("active");
         setAiState("listening");
 
-        // Start countdown timer
+        sessionTimeoutRef.current = setTimeout(() => {
+          endInterviewLocal("Session time limit reached");
+        }, SESSION_TIMEOUT_MS);
+
         timerRef.current = setInterval(() => {
           setTimeRemaining((prev) => {
             if (prev <= 1) {
-              setStatus("ended");
-              setEndReason("Session time limit reached");
-              cleanup();
+              endInterviewLocal("Session time limit reached");
               return 0;
             }
             return prev - 1;
           });
         }, 1000);
       } catch (err) {
-        if (!cancelled) {
-          setError(
-            err instanceof Error ? err.message : "Failed to start session"
-          );
-          setStatus("idle");
-        }
+        if (cancelled || abortController.signal.aborted) return;
+        cleanupCore();
+        setError(
+          err instanceof Error ? err.message : "Failed to start live session",
+        );
+        setStatus("idle");
       }
     };
 
-    const cleanup = () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-      if (thinkingTimerRef.current) {
-        clearTimeout(thinkingTimerRef.current);
-        thinkingTimerRef.current = null;
-      }
-      captureRef.current?.stop();
-      captureRef.current = null;
-      playbackRef.current?.stop();
-      playbackRef.current = null;
-      clientRef.current?.disconnect();
-      clientRef.current = null;
-      setAnalyserNode(null);
-    };
-
-    init();
+    void init();
 
     return () => {
       cancelled = true;
-      cleanup();
+      abortController.abort();
+      cleanupCore();
     };
   }, [sessionId]);
 
-  const toggleMic = useCallback(() => {
-    if (isMicOn) {
-      captureRef.current?.stop();
-      setIsMicOn(false);
-    } else {
-      captureRef.current?.start().then(() => {
-        setAnalyserNode(captureRef.current?.getAnalyserNode() ?? null);
-      });
-      setIsMicOn(true);
+  useEffect(() => {
+    if (!isMicOn || status !== "active" || !sessionId) {
+      setUserSpeaking(false);
+      if (captureRef.current) {
+        try {
+          liveSessionRef.current?.sendRealtimeInput({ audioStreamEnd: true });
+        } catch {
+          /* ignore */
+        }
+        captureRef.current.stop();
+        captureRef.current = null;
+      }
+      if (rafRef.current != null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      return;
     }
-  }, [isMicOn]);
+
+    const session = liveSessionRef.current;
+    if (!session) return;
+
+    let stopped = false;
+    const capture = new AudioCapture();
+    captureRef.current = capture;
+
+    const pollVoice = () => {
+      if (stopped) return;
+      const analyser = capture.getAnalyserNode();
+      if (analyser) {
+        const buf = new Uint8Array(analyser.frequencyBinCount);
+        analyser.getByteFrequencyData(buf);
+        let sum = 0;
+        for (let i = 0; i < buf.length; i++) sum += buf[i];
+        const active = sum / buf.length > 8;
+        setUserSpeaking(active);
+      }
+      rafRef.current = requestAnimationFrame(pollVoice);
+    };
+
+    capture
+      .start()
+      .then(() => {
+        if (stopped) return;
+        pollVoice();
+        capture.onPcmChunk = (pcmBuffer) => {
+          try {
+            liveSessionRef.current?.sendRealtimeInput({
+              audio: {
+                data: arrayBufferToBase64(pcmBuffer),
+                mimeType: "audio/pcm;rate=16000",
+              },
+            });
+          } catch {
+            /* ignore */
+          }
+        };
+      })
+      .catch(() => {
+        setError("Microphone permission denied or unavailable.");
+        setIsMicOn(false);
+      });
+
+    return () => {
+      stopped = true;
+      if (rafRef.current != null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      try {
+        liveSessionRef.current?.sendRealtimeInput({ audioStreamEnd: true });
+      } catch {
+        /* ignore */
+      }
+      capture.stop();
+      if (captureRef.current === capture) {
+        captureRef.current = null;
+      }
+      setUserSpeaking(false);
+    };
+  }, [isMicOn, status, sessionId]);
+
+  const toggleMic = useCallback(() => {
+    setIsMicOn((prev) => !prev);
+  }, []);
+
+  const dismissError = useCallback(() => {
+    setError(null);
+  }, []);
 
   const endSession = useCallback(() => {
     setStatus("ended");
     setEndReason("Interview ended by user");
+    setUserSpeaking(false);
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
+    if (sessionTimeoutRef.current) {
+      clearTimeout(sessionTimeoutRef.current);
+      sessionTimeoutRef.current = null;
+    }
+    if (rafRef.current != null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
     captureRef.current?.stop();
+    captureRef.current = null;
     playbackRef.current?.stop();
-    clientRef.current?.disconnect();
-  }, []);
+    playbackRef.current = null;
+    try {
+      liveSessionRef.current?.close();
+    } catch {
+      /* ignore */
+    }
+    liveSessionRef.current = null;
 
-  // Optimistic "thinking" hint — only if user has actually spoken
-  const hintThinking = useCallback(() => {
-    if (!userHasSpokenRef.current) return;
-    setAiState((prev) => (prev === "listening" ? "thinking" : prev));
-  }, []);
-
-  // Manual VAD: send activity signals to Gemini
-  const sendActivityStart = useCallback(() => {
-    userHasSpokenRef.current = true;
-    clientRef.current?.sendActivityStart();
-  }, []);
-
-  const sendActivityEnd = useCallback(() => {
-    clientRef.current?.sendActivityEnd();
+    const sid = sessionIdRef.current;
+    if (sid) {
+      void fetch("/api/interview/end", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: sid }),
+      });
+    }
   }, []);
 
   return {
@@ -261,12 +491,10 @@ export function useInterview(sessionId: string | null): UseInterviewReturn {
     error,
     endReason,
     isMicOn,
+    userSpeaking,
     toggleMic,
     endSession,
-    analyserNode,
+    dismissError,
     transcript,
-    hintThinking,
-    sendActivityStart,
-    sendActivityEnd,
   };
 }

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AuthProvider } from "@/context/auth-context";
 import "./globals.css";
@@ -16,7 +16,14 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "AI Mock Interviewer",
   description:
-    "Practice interviews with an AI-powered interviewer using real-time voice conversation",
+    "Practice interviews with an AI-powered voice interviewer, tailored feedback, and resume-aware questions.",
+  applicationName: "AI Mock Interviewer",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#020617",
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({

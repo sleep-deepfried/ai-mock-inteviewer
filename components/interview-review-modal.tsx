@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Star } from "lucide-react";
 
 export interface InterviewReviewPayload {
@@ -11,14 +11,15 @@ export interface InterviewReviewPayload {
 interface InterviewReviewModalProps {
   open: boolean;
   endReason: string | null;
-  onSkip: () => void;
-  onContinue: (review: InterviewReviewPayload | null) => void;
+  /** When true, we still generate results but feedback may be limited. */
+  transcriptEmpty?: boolean;
+  onContinue: (review: InterviewReviewPayload) => void;
 }
 
 export function InterviewReviewModal({
   open,
   endReason,
-  onSkip,
+  transcriptEmpty = false,
   onContinue,
 }: InterviewReviewModalProps) {
   const [rating, setRating] = useState(0);
@@ -26,6 +27,7 @@ export function InterviewReviewModal({
   const [comment, setComment] = useState("");
   const panelRef = useRef<HTMLDivElement>(null);
   const titleId = "interview-review-title";
+  const ratingHintId = useId();
 
   useEffect(() => {
     if (!open) return;
@@ -37,14 +39,18 @@ export function InterviewReviewModal({
 
   useEffect(() => {
     if (open) return;
-    setRating(0);
-    setHover(0);
-    setComment("");
+    const id = window.requestAnimationFrame(() => {
+      setRating(0);
+      setHover(0);
+      setComment("");
+    });
+    return () => window.cancelAnimationFrame(id);
   }, [open]);
 
   if (!open) return null;
 
   const display = hover || rating;
+  const canContinue = rating >= 1;
 
   return (
     <div
@@ -66,32 +72,45 @@ export function InterviewReviewModal({
           How was your interview?
         </h2>
         <p className="mt-2 text-sm text-gray-400">
-          Quick feedback helps us improve your experience. Optional—you can
-          skip and go straight to your results.
+          Rate your experience before we show your results—it only takes a
+          moment and helps us improve.
         </p>
         {endReason && (
           <p className="mt-2 text-xs text-gray-500">{endReason}</p>
         )}
+        {transcriptEmpty && (
+          <p className="mt-2 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-100/90">
+            We did not capture a full transcript from this session. You can
+            still continue—results will focus on general guidance and next
+            steps.
+          </p>
+        )}
 
         <div className="mt-6">
-          <p className="mb-2 text-sm font-medium text-gray-300">
-            Overall experience
+          <p
+            id={ratingHintId}
+            className="mb-2 text-sm font-medium text-gray-300"
+          >
+            Overall experience{" "}
+            <span className="font-normal text-amber-200/90">(required)</span>
           </p>
           <div
             className="flex gap-1"
-            role="group"
-            aria-label="Rate from 1 to 5 stars"
+            role="radiogroup"
+            aria-labelledby={ratingHintId}
+            aria-required="true"
           >
             {[1, 2, 3, 4, 5].map((value) => (
               <button
                 key={value}
                 type="button"
+                role="radio"
+                aria-checked={rating === value}
                 onClick={() => setRating(value)}
                 onMouseEnter={() => setHover(value)}
                 onMouseLeave={() => setHover(0)}
                 className="rounded p-1 text-amber-400 transition hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
                 aria-label={`${value} star${value === 1 ? "" : "s"}`}
-                aria-pressed={rating === value}
               >
                 <Star
                   className={`h-8 w-8 stroke-1 ${
@@ -103,6 +122,11 @@ export function InterviewReviewModal({
               </button>
             ))}
           </div>
+          {!canContinue ? (
+            <p className="mt-2 text-xs text-gray-500">
+              Select 1–5 stars to continue to your results.
+            </p>
+          ) : null}
         </div>
 
         <label htmlFor="review-comment" className="mt-6 block">
@@ -119,24 +143,17 @@ export function InterviewReviewModal({
           />
         </label>
 
-        <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3">
+        <div className="mt-6 flex justify-end">
           <button
             type="button"
-            onClick={onSkip}
-            className="rounded-xl border border-white/10 px-4 py-2.5 text-sm font-medium text-gray-300 transition hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
-          >
-            Skip
-          </button>
-          <button
-            type="button"
+            disabled={!canContinue}
             onClick={() =>
-              onContinue(
-                rating > 0
-                  ? { rating, comment: comment.trim() }
-                  : null,
-              )
+              onContinue({
+                rating,
+                comment: comment.trim(),
+              })
             }
-            className="rounded-xl bg-purple-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-purple-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
+            className="rounded-xl bg-purple-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-purple-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Continue to results
           </button>

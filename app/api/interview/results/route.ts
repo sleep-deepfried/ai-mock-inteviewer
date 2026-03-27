@@ -10,33 +10,27 @@ interface TranscriptEntry {
   text: string;
 }
 
-export async function POST(request: Request) {
-  try {
-    const user = await getAuthUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+const RESULTS_JSON_SCHEMA = `Respond ONLY with valid JSON in this exact format:
+{
+  "overallScore": number,
+  "categories": [
+    { "name": "Communication Skills", "score": number, "feedback": "string" },
+    { "name": "Technical Knowledge", "score": number, "feedback": "string" },
+    { "name": "Problem Solving", "score": number, "feedback": "string" },
+    { "name": "Confidence & Delivery", "score": number, "feedback": "string" },
+    { "name": "Relevance", "score": number, "feedback": "string" }
+  ],
+  "strengths": ["string", "string", "string"],
+  "improvements": ["string", "string", "string"],
+  "summary": "string"
+}`;
 
-    const body = await request.json();
-    const { transcript, jobRole, duration, review } = body as {
-      transcript: TranscriptEntry[];
-      jobRole: string;
-      duration: number;
-      review?: { rating: number; comment?: string };
-    };
-
-    if (!transcript || !Array.isArray(transcript) || transcript.length === 0) {
-      return NextResponse.json(
-        { error: "Transcript is required" },
-        { status: 400 }
-      );
-    }
-
-    const conversationText = transcript
-      .map((t) => `${t.role === "user" ? "Candidate" : "Interviewer"}: ${t.text}`)
-      .join("\n");
-
-    const prompt = `You are an expert interview coach. Analyze this mock interview transcript for a "${jobRole}" position that lasted ${Math.round(duration / 60)} minutes.
+function buildScoringPrompt(
+  jobRole: string,
+  durationMinutes: number,
+  conversationText: string,
+): string {
+  return `You are an expert interview coach. Analyze this mock interview transcript for a "${jobRole}" position that lasted ${durationMinutes} minutes.
 
 Score the candidate on these categories (0-100 each) and provide specific, actionable feedback:
 
@@ -52,23 +46,69 @@ Also provide:
 - 3 areas for improvement
 - A brief overall summary (2-3 sentences)
 
-Respond ONLY with valid JSON in this exact format:
-{
-  "overallScore": number,
-  "categories": [
-    { "name": "Communication Skills", "score": number, "feedback": "string" },
-    { "name": "Technical Knowledge", "score": number, "feedback": "string" },
-    { "name": "Problem Solving", "score": number, "feedback": "string" },
-    { "name": "Confidence & Delivery", "score": number, "feedback": "string" },
-    { "name": "Relevance", "score": number, "feedback": "string" }
-  ],
-  "strengths": ["string", "string", "string"],
-  "improvements": ["string", "string", "string"],
-  "summary": "string"
-}
+${RESULTS_JSON_SCHEMA}
 
 Transcript:
 ${conversationText}`;
+}
+
+function buildNoTranscriptCoachPrompt(
+  jobRole: string,
+  durationMinutes: number,
+): string {
+  return `You are a warm, plain-spoken interview coach. Someone just finished a practice session for a "${jobRole}" role (about ${durationMinutes} minutes on the timer), but **we did not capture what they said**—usually mic permission, browser, Wi‑Fi, or leaving before the conversation really started.
+
+They will read this on a "limited feedback" screen. There is **nothing to grade**. Your job is encouragement and practical next steps only.
+
+**Tone and wording (critical):**
+- Write to **you** like a supportive peer. Short sentences. Zero shame.
+- Do **not** use stiff phrases such as: "substantive scoring," "absence of dialogue," "cannot evaluate," "insufficient data," "complete absence," "actionable feedback" as jargon, or "no evidence."
+- Do **not** blame "technology," "glitches," "bugs," or "the system." Stay human: we simply did not hear them this round; it happens; the next session can go differently.
+- Do **not** pretend you heard their answers. Do not invent strengths about how they answered questions.
+
+**JSON output rules:**
+- Set \`overallScore\` to **0** and every category \`score\` to **0** (placeholders only).
+- Each category \`feedback\`: one friendly sentence—e.g. a tip for next time so we can hear them—not a fake score.
+- \`strengths\`: exactly **3** bullets. Honest positives: e.g. they showed up to practice, they care about the role, they can try again—**not** praise for answers we never heard.
+- \`improvements\`: exactly **3** bullets. Concrete habits: allow microphone, wait until you hear the interviewer, use a stable connection, speak in full sentences out loud.
+- \`summary\`: **2–3 sentences**. Warm and normal—e.g. it is common not to be heard on a first try, you are welcome back anytime, the bullets below will make the next run easier. No "glitch" or "tech" talk.
+
+${RESULTS_JSON_SCHEMA}`;
+}
+
+export async function POST(request: Request) {
+  try {
+    const user = await getAuthUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { transcript, jobRole, duration, review, transcriptWasEmpty } =
+      body as {
+        transcript: TranscriptEntry[];
+        jobRole: string;
+        duration: number;
+        review?: { rating: number; comment?: string };
+        transcriptWasEmpty?: boolean;
+      };
+
+    if (!transcript || !Array.isArray(transcript) || transcript.length === 0) {
+      return NextResponse.json(
+        { error: "Transcript is required" },
+        { status: 400 },
+      );
+    }
+
+    const durationMinutes = Math.max(0, Math.round(duration / 60));
+    const conversationText = transcript
+      .map((t) => `${t.role === "user" ? "Candidate" : "Interviewer"}: ${t.text}`)
+      .join("\n");
+
+    const prompt =
+      transcriptWasEmpty === true
+        ? buildNoTranscriptCoachPrompt(jobRole, durationMinutes)
+        : buildScoringPrompt(jobRole, durationMinutes, conversationText);
 
     const genai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string });
     const response = await genai.models.generateContent({
@@ -81,7 +121,7 @@ ${conversationText}`;
     if (!jsonMatch) {
       return NextResponse.json(
         { error: "Failed to parse AI feedback" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -106,13 +146,16 @@ ${conversationText}`;
       }
     }
 
-    return NextResponse.json(feedback);
+    return NextResponse.json({
+      ...feedback,
+      transcriptWasEmpty: Boolean(transcriptWasEmpty),
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("Results generation failed:", message);
     return NextResponse.json(
       { error: "Failed to generate results", detail: message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

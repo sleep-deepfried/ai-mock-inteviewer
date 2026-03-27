@@ -16,6 +16,7 @@ describe("System prompt property tests", () => {
           jobRole: fc.string({ minLength: 1 }),
           jobDescription: fc.string(),
           resumeText: fc.string({ minLength: 1 }),
+          interviewStyle: fc.constantFrom("behavioral", "technical"),
         }),
         (context) => {
           const result = buildSystemInstruction(context);
@@ -31,6 +32,12 @@ describe("System prompt property tests", () => {
 
           // Must contain the resume text
           expect(result).toContain(context.resumeText);
+
+          if (context.interviewStyle === "behavioral") {
+            expect(result).toContain("BEHAVIORAL");
+          } else {
+            expect(result).toContain("TECHNICAL");
+          }
         }
       ),
       { numRuns: 100 }
