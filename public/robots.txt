@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /interview/
+
+Sitemap: https://ai-mock-inteviewer.vercel.app/sitemap.xml

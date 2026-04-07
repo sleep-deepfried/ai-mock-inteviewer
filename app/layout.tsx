@@ -14,10 +14,16 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AI Mock Interviewer",
+  title: "Vocis — AI Interview Coach",
   description:
-    "Practice interviews with an AI-powered voice interviewer, tailored feedback, and resume-aware questions.",
-  applicationName: "AI Mock Interviewer",
+    "Practice real voice interviews with AI. Get tailored questions for your role and resume, then receive scored feedback with strengths and areas to improve.",
+  applicationName: "Vocis",
+  keywords: ["interview prep", "mock interview", "AI interview", "voice interview", "career coach", "interview feedback", "job interview practice"],
+  openGraph: {
+    title: "Vocis — AI Interview Coach",
+    description: "Practice real voice interviews with AI. Tailored questions, scored feedback, and actionable improvements.",
+    type: "website",
+  },
 };
 
 export const viewport: Viewport = {

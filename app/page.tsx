@@ -8,7 +8,7 @@ const bento = [
     icon: Mic,
     title: "Voice practice",
     description:
-      "Speak naturally in the browser; the interviewer replies with voice (Gemini + ElevenLabs). Same back-and-forth rhythm as a real screen.",
+      "Speak naturally in the browser; the AI interviewer replies with voice in real time. Same back-and-forth rhythm as a real phone screen.",
   },
   {
     icon: Target,
@@ -26,7 +26,7 @@ const bento = [
 
 const faqItems: FaqItem[] = [
   {
-    question: "What is AI Mock Interviewer?",
+    question: "What is Vocis?",
     answer:
       "It is a safe space to rehearse a real interview out loud. You pick the role you want, choose whether you want more behavioral or technical questions, add a resume if you like, then you talk—and hear an interviewer respond in real time. When you are done, you get clear feedback on what went well and what to tighten before the actual interview.",
   },
@@ -62,6 +62,13 @@ export default function HomePage() {
     process.env.NEXT_PUBLIC_APP_STAGE.toLowerCase() === "beta";
 
   return (
+    <>
+      <a
+        href="#start-interview"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-purple-600 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white"
+      >
+        Skip to content
+      </a>
     <main className="relative flex min-h-dvh flex-col bg-[#050508] text-white">
       {/* Full-page stitch canvas (fills main height; content stacks above at z-10+). */}
       <div
@@ -75,7 +82,7 @@ export default function HomePage() {
         >
           <div className="flex min-w-0 items-center gap-3 sm:gap-3.5">
             <span className="truncate text-base font-semibold tracking-tight text-white sm:text-lg">
-              AI Mock Interviewer
+              Vocis
             </span>
             {showBeta ? (
               <span className="shrink-0 rounded-full border border-white/70 bg-transparent px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white">
@@ -195,7 +202,7 @@ export default function HomePage() {
         role="contentinfo"
       >
         <p>
-          © {new Date().getFullYear()} AI Mock Interviewer
+          © {new Date().getFullYear()} Vocis
           <span className="mx-1.5 text-zinc-700" aria-hidden>
             ·
           </span>
@@ -205,5 +212,6 @@ export default function HomePage() {
         </p>
       </footer>
     </main>
+    </>
   );
 }

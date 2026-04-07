@@ -138,10 +138,10 @@ describe("Landing Page", () => {
       screen.getByRole("heading", { name: /questions\?/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/what is ai mock interviewer\?/i),
+      screen.getByText(/what is vocis\?/i),
     ).toBeInTheDocument();
     fireEvent.click(
-      screen.getByRole("button", { name: /what is ai mock interviewer/i }),
+      screen.getByRole("button", { name: /what is vocis/i }),
     );
     expect(
       screen.getByText(/safe space to rehearse a real interview out loud/i),
@@ -158,7 +158,7 @@ describe("Landing Page", () => {
     render(<HomePage />);
     const footer = screen.getByRole("contentinfo");
     expect(footer).toHaveTextContent(
-      new RegExp(`©\\s*${new Date().getFullYear()}\\s*AI Mock Interviewer`),
+      new RegExp(`©\\s*${new Date().getFullYear()}\\s*Vocis`),
     );
   });
 
