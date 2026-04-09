@@ -8,10 +8,10 @@ const PAUSE_FULL_MS = 2400;
 const PAUSE_EMPTY_MS = 650;
 
 export const HERO_PLACEHOLDER_PHRASES = [
-  "What role are you interviewing for?",
-  "Senior engineer, PM, or designer—say the job you're targeting…",
-  "Toggle Behavioral or Technical, add your role, then press the arrow to start.",
-  "Attach a resume here if you like—optional but sharper questions.",
+  "Enter a job title or paste a full job description…",
+  "Senior Software Engineer at Google, or paste the whole JD…",
+  "The more detail you give, the sharper the questions.",
+  "Attach a resume for even more tailored practice.",
   "Voice-first practice: speak naturally, get scored feedback after.",
 ];
 

@@ -119,7 +119,7 @@ export function LandingHeroComposer({
       aria-label="Interview composer"
     >
       <label htmlFor="landing-hero-prompt" className="sr-only">
-        Role or goal for your mock interview
+        Job title or full job description for your mock interview
       </label>
       <div className="relative">
         <textarea
@@ -132,7 +132,9 @@ export function LandingHeroComposer({
           onFocus={() => setFieldFocused(true)}
           onBlur={() => setFieldFocused(false)}
           placeholder={
-            reducedMotion ? "What role are you interviewing for?" : "\u00a0"
+            reducedMotion
+              ? "Enter a job title or paste a full job description…"
+              : "\u00a0"
           }
           className="min-h-[9.5rem] w-full resize-none bg-transparent px-5 pb-3 pt-5 text-base leading-relaxed text-white outline-none placeholder:text-transparent sm:min-h-[11.5rem] sm:px-7 sm:pb-4 sm:pt-7 sm:text-lg"
         />
