@@ -2,19 +2,13 @@
 
 import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 import {
   useCyclingTypewriter,
   useReducedMotionPreference,
 } from "@/components/landing/use-cycling-typewriter";
 import { isValidFile } from "@/lib/validate-file";
-import {
-  ArrowUp,
-  Code2,
-  Loader2,
-  MessageSquare,
-  Plus,
-  X,
-} from "lucide-react";
+import { Code2, Loader2, MessageSquare, Plus, X } from "lucide-react";
 
 type FocusMode = "behavioral" | "technical";
 
@@ -32,22 +26,23 @@ const SUGGESTED_ROLES = [
 
 interface LandingHeroComposerProps {
   focusRing: string;
+  defaultRole?: string;
 }
 
-export function LandingHeroComposer({ focusRing }: LandingHeroComposerProps) {
+export function LandingHeroComposer({
+  focusRing,
+  defaultRole = "",
+}: LandingHeroComposerProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const promptRef = useRef<HTMLTextAreaElement>(null);
-  const [prompt, setPrompt] = useState("");
+  const [prompt, setPrompt] = useState(defaultRole);
   const [fieldFocused, setFieldFocused] = useState(false);
   const [focus, setFocus] = useState<FocusMode>("behavioral");
   const [resumeFile, setResumeFile] = useState<File | null>(null);
-  const [resumeError, setResumeError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
   const reducedMotion = useReducedMotionPreference();
-  const placeholderActive =
-    !prompt.trim() && !fieldFocused;
+  const placeholderActive = !prompt.trim() && !fieldFocused;
   const typewriterDisplay = useCyclingTypewriter(
     placeholderActive && !reducedMotion,
   );
@@ -58,21 +53,19 @@ export function LandingHeroComposer({ focusRing }: LandingHeroComposerProps) {
     if (!f) return;
     const result = isValidFile(f);
     if (!result.valid) {
-      setResumeError(result.error ?? "Invalid file");
+      toast.error(result.error ?? "Invalid file");
       setResumeFile(null);
       return;
     }
-    setResumeError(null);
     setResumeFile(f);
   }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setSubmitError(null);
     const trimmed = prompt.trim();
 
     if (!trimmed) {
-      setSubmitError("Enter your target role above to start the interview.");
+      toast.error("Enter your target role to start the interview.");
       return;
     }
 
@@ -98,7 +91,9 @@ export function LandingHeroComposer({ focusRing }: LandingHeroComposerProps) {
           error?: string;
         };
         throw new Error(
-          typeof data.error === "string" ? data.error : "Could not start interview",
+          typeof data.error === "string"
+            ? data.error
+            : "Could not start interview",
         );
       }
 
@@ -111,9 +106,7 @@ export function LandingHeroComposer({ focusRing }: LandingHeroComposerProps) {
         `/interview?sessionId=${encodeURIComponent(body.sessionId)}&role=${encodeURIComponent(trimmed)}`,
       );
     } catch (err) {
-      setSubmitError(
-        err instanceof Error ? err.message : "Something went wrong",
-      );
+      toast.error(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setSubmitting(false);
     }
@@ -139,9 +132,7 @@ export function LandingHeroComposer({ focusRing }: LandingHeroComposerProps) {
           onFocus={() => setFieldFocused(true)}
           onBlur={() => setFieldFocused(false)}
           placeholder={
-            reducedMotion
-              ? "What role are you interviewing for?"
-              : "\u00a0"
+            reducedMotion ? "What role are you interviewing for?" : "\u00a0"
           }
           className="min-h-[9.5rem] w-full resize-none bg-transparent px-5 pb-3 pt-5 text-base leading-relaxed text-white outline-none placeholder:text-transparent sm:min-h-[11.5rem] sm:px-7 sm:pb-4 sm:pt-7 sm:text-lg"
         />
@@ -180,7 +171,6 @@ export function LandingHeroComposer({ focusRing }: LandingHeroComposerProps) {
                 aria-pressed={selected}
                 aria-label={`Use job role ${role}`}
                 onClick={() => {
-                  setSubmitError(null);
                   setPrompt(role);
                   window.requestAnimationFrame(() => {
                     promptRef.current?.focus();
@@ -234,7 +224,6 @@ export function LandingHeroComposer({ focusRing }: LandingHeroComposerProps) {
                   className={`shrink-0 rounded p-0.5 text-zinc-500 motion-safe:hover:bg-white/10 motion-safe:hover:text-zinc-300 ${focusRing}`}
                   onClick={() => {
                     setResumeFile(null);
-                    setResumeError(null);
                   }}
                 >
                   <X className="h-3.5 w-3.5" aria-hidden />
@@ -242,17 +231,6 @@ export function LandingHeroComposer({ focusRing }: LandingHeroComposerProps) {
               </span>
             ) : null}
           </div>
-
-          {resumeError ? (
-            <p className="text-xs text-red-400 sm:text-sm" role="alert">
-              {resumeError}
-            </p>
-          ) : null}
-          {submitError ? (
-            <p className="text-xs text-red-400 sm:text-sm" role="alert">
-              {submitError}
-            </p>
-          ) : null}
 
           <div
             className="inline-flex rounded-full bg-zinc-800/90 p-1"
@@ -293,25 +271,15 @@ export function LandingHeroComposer({ focusRing }: LandingHeroComposerProps) {
             type="submit"
             disabled={submitting}
             aria-busy={submitting}
-            aria-label={
-              prompt.trim()
-                ? "Start mock interview"
-                : "Submit—add your target role first"
-            }
-            className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-black transition motion-safe:hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-60 sm:h-12 sm:w-12 ${focusRing}`}
+            className={`inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-semibold text-black transition motion-safe:hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-60 sm:px-6 sm:py-3.5 sm:text-base ${focusRing}`}
           >
             {submitting ? (
               <Loader2
-                className="h-5 w-5 motion-safe:animate-spin sm:h-5 sm:w-5"
+                className="h-5 w-5 motion-safe:animate-spin"
                 aria-hidden
               />
-            ) : (
-              <ArrowUp
-                className="h-5 w-5 sm:h-5 sm:w-5"
-                strokeWidth={2.5}
-                aria-hidden
-              />
-            )}
+            ) : null}
+            {submitting ? "Starting…" : "Get started"}
           </button>
         </div>
       </div>

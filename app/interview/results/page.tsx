@@ -111,8 +111,13 @@ function ResultsContent() {
       });
     }
 
-    const { transcript, jobRole: role, duration, review, transcriptWasEmpty } =
-      parsed;
+    const {
+      transcript,
+      jobRole: role,
+      duration,
+      review,
+      transcriptWasEmpty,
+    } = parsed;
 
     fetch("/api/interview/results", {
       method: "POST",
@@ -180,16 +185,16 @@ function ResultsContent() {
         </p>
         <div className="flex flex-col gap-2 sm:flex-row">
           <Link
-            href="/#start-interview"
+            href="/dashboard"
             className={`rounded-xl bg-purple-600 px-6 py-3 text-center text-sm font-semibold text-white transition hover:bg-purple-500 ${focusRing}`}
           >
             New interview
           </Link>
           <Link
-            href="/"
+            href="/dashboard"
             className={`rounded-xl border border-white/15 px-6 py-3 text-center text-sm font-medium text-slate-300 transition hover:bg-white/5 ${focusRing}`}
           >
-            Home
+            Dashboard
           </Link>
         </div>
       </main>
@@ -207,14 +212,14 @@ function ResultsContent() {
     <main className="min-h-dvh bg-gradient-to-b from-slate-950 via-slate-950 to-purple-950/25 pb-[env(safe-area-inset-bottom)] text-white">
       <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-10">
         <Link
-          href="/"
+          href="/dashboard"
           className={`group mb-8 inline-flex items-center gap-2 text-sm text-slate-400 transition hover:text-white ${focusRing} rounded-lg`}
         >
           <ArrowLeft
             className="h-4 w-4 transition group-hover:-translate-x-0.5"
             aria-hidden
           />
-          Back to home
+          Back to dashboard
         </Link>
 
         {thankYouReview ? (
@@ -268,8 +273,8 @@ function LimitedResultsBody({
           You were set up for{" "}
           <span className="font-medium text-slate-300">{roleLabel}</span>, but
           nothing from your microphone made it into a transcript we can score.
-          That is why this page skips numbers and focuses on what to try next—not
-          because you did anything wrong.
+          That is why this page skips numbers and focuses on what to try
+          next—not because you did anything wrong.
         </p>
         <p className="mt-3 max-w-xl text-sm leading-relaxed text-slate-400">
           <span className="font-medium text-slate-300">Next try:</span> allow
@@ -301,7 +306,9 @@ function LimitedResultsBody({
         <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.06] p-5">
           <div className="mb-3 flex items-center gap-2 text-emerald-400">
             <TrendingUp className="h-4 w-4" aria-hidden />
-            <span className="text-sm font-semibold">Something to feel good about</span>
+            <span className="text-sm font-semibold">
+              Something to feel good about
+            </span>
           </div>
           <ul className="space-y-2.5 text-sm leading-relaxed text-slate-300">
             {results.strengths.map((s, i) => (
@@ -413,7 +420,9 @@ function FullResultsBody({
                 >
                   <div
                     className={`h-full rounded-full ${bandBarClass(band)} transition-all duration-500`}
-                    style={{ width: `${Math.min(100, Math.max(0, cat.score))}%` }}
+                    style={{
+                      width: `${Math.min(100, Math.max(0, cat.score))}%`,
+                    }}
                   />
                 </div>
                 <p className="mt-3 text-xs leading-relaxed text-slate-400 sm:text-sm">
@@ -465,16 +474,16 @@ function ResultsFooter({ focusRing }: { focusRing: string }) {
   return (
     <footer className="flex flex-col gap-3 border-t border-white/10 pt-8 sm:flex-row sm:justify-center">
       <Link
-        href="/#start-interview"
+        href="/dashboard"
         className={`rounded-xl bg-purple-600 px-6 py-3 text-center text-sm font-semibold text-white transition hover:bg-purple-500 ${focusRing}`}
       >
         Start new interview
       </Link>
       <Link
-        href="/"
+        href="/dashboard"
         className={`rounded-xl border border-white/10 px-6 py-3 text-center text-sm font-medium text-slate-300 transition hover:bg-white/5 ${focusRing}`}
       >
-        Back to home
+        Back to dashboard
       </Link>
     </footer>
   );

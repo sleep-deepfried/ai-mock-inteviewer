@@ -84,13 +84,14 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { transcript, jobRole, duration, review, transcriptWasEmpty } =
+    const { transcript, jobRole, duration, review, transcriptWasEmpty, interviewStyle } =
       body as {
         transcript: TranscriptEntry[];
         jobRole: string;
         duration: number;
         review?: { rating: number; comment?: string };
         transcriptWasEmpty?: boolean;
+        interviewStyle?: string;
       };
 
     if (!transcript || !Array.isArray(transcript) || transcript.length === 0) {
@@ -126,6 +127,47 @@ export async function POST(request: Request) {
     }
 
     const feedback = JSON.parse(jsonMatch[0]);
+
+    // Persist session + scorecard to Supabase (best-effort, don't block response)
+    if (process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH !== "true") {
+      try {
+        const { createClient: createServerSupabase } = await import("@/lib/supabase/server");
+        const supabase = await createServerSupabase();
+
+        // Upsert user
+        const { data: dbUser } = await supabase
+          .from("users")
+          .upsert({ email: user.email, display_name: user.user_metadata?.full_name ?? null }, { onConflict: "email" })
+          .select("id")
+          .single();
+
+        if (dbUser) {
+          const { data: session } = await supabase
+            .from("interview_sessions")
+            .insert({
+              user_id: dbUser.id,
+              session_type: interviewStyle === "technical" ? "technical" : "behavioral",
+              status: "completed",
+              metadata: { role: jobRole },
+              ended_at: new Date().toISOString(),
+            })
+            .select("id")
+            .single();
+
+          if (session) {
+            await supabase.from("scorecards").insert({
+              session_id: session.id,
+              user_id: dbUser.id,
+              overall_score: Math.max(1, Math.min(100, feedback.overallScore ?? 50)),
+              category_scores: feedback.categories ?? {},
+              feedback: feedback.summary ?? "",
+            });
+          }
+        }
+      } catch (dbErr) {
+        console.error("[db] Failed to persist interview results:", dbErr);
+      }
+    }
 
     if (
       review &&

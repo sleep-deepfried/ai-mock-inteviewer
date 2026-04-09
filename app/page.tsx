@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Mic, Target, LineChart } from "lucide-react";
 import { LandingFaq, type FaqItem } from "@/components/landing/landing-faq";
+import { LandingHeader } from "@/components/landing/landing-header";
 import { LandingHeroComposer } from "@/components/landing/landing-hero-composer";
 
 const bento = [
@@ -56,7 +57,6 @@ const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black";
 
 export default function HomePage() {
-  const showSignIn = process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH !== "true";
   const showBeta =
     typeof process.env.NEXT_PUBLIC_APP_STAGE === "string" &&
     process.env.NEXT_PUBLIC_APP_STAGE.toLowerCase() === "beta";
@@ -69,149 +69,104 @@ export default function HomePage() {
       >
         Skip to content
       </a>
-    <main className="relative flex min-h-dvh flex-col bg-[#050508] text-white">
-      {/* Full-page stitch canvas (fills main height; content stacks above at z-10+). */}
-      <div
-        className="landing-stitch pointer-events-none absolute inset-0 z-0"
-        aria-hidden
-      />
-      <header className="sticky top-0 z-50 bg-zinc-950/20 backdrop-blur-2xl backdrop-saturate-150 supports-[backdrop-filter]:bg-zinc-950/[0.12]">
-        <nav
-          className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-5 py-4 sm:px-8 sm:py-4"
-          aria-label="Main"
+      <main className="relative flex min-h-dvh flex-col bg-[#050508] text-white">
+        {/* Full-page stitch canvas (fills main height; content stacks above at z-10+). */}
+        <div
+          className="landing-stitch pointer-events-none absolute inset-0 z-0"
+          aria-hidden
+        />
+        <LandingHeader showBeta={showBeta} focusRing={focusRing} />
+
+        <section
+          className="relative z-10 flex min-h-[calc(100dvh-4.5rem)] flex-col items-center justify-center overflow-hidden px-4 py-10 text-center sm:px-6 sm:py-14"
+          aria-labelledby="hero-heading"
         >
-          <div className="flex min-w-0 items-center gap-3 sm:gap-3.5">
-            <span className="truncate text-base font-semibold tracking-tight text-white sm:text-lg">
-              Vocis
+          <div className="relative z-10 mx-auto w-full max-w-5xl px-0 sm:px-2">
+            <div className="mx-auto max-w-3xl">
+              <h1
+                id="hero-heading"
+                className="text-4xl font-semibold leading-[1.08] tracking-tight sm:text-5xl sm:leading-[1.06]"
+              >
+                Practice interviews that feel real.
+              </h1>
+              <p className="mt-4 text-base leading-relaxed text-zinc-400 sm:mt-5 sm:text-lg">
+                Voice-first mock interviews. Questions tailored to your role and
+                resume—then clear, actionable feedback when you are done.
+              </p>
+            </div>
+            <div id="start-interview" className="w-full">
+              <LandingHeroComposer focusRing={focusRing} />
+            </div>
+          </div>
+        </section>
+
+        <section
+          className="relative z-10 px-4 py-16 sm:px-6 sm:py-20"
+          aria-labelledby="bento-heading"
+        >
+          <div className="mx-auto max-w-5xl">
+            <h2
+              id="bento-heading"
+              className="text-2xl font-semibold tracking-tight sm:text-3xl"
+            >
+              Built for serious prep
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm text-zinc-400 sm:text-base">
+              Voice session, context-aware questions, and a structured
+              debrief—so you know what to fix before the real interview.
+            </p>
+            <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {bento.map((item) => (
+                <div
+                  key={item.title}
+                  className="stitch-card motion-safe:transition motion-safe:hover:border-white/15 motion-safe:hover:bg-white/[0.045] p-6 sm:p-7"
+                >
+                  <item.icon className="h-8 w-8 text-violet-400" aria-hidden />
+                  <h3 className="mt-4 text-lg font-semibold">{item.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+                    {item.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section
+          className="relative z-10 px-4 py-20 sm:px-6 sm:py-28"
+          aria-labelledby="faq-heading"
+        >
+          <div className="mx-auto max-w-5xl">
+            <h2
+              id="faq-heading"
+              className="text-center text-3xl font-semibold tracking-tight sm:text-4xl lg:text-5xl"
+            >
+              Questions?
+            </h2>
+            <p className="mx-auto mt-3 max-w-2xl text-center text-base leading-relaxed text-zinc-400 sm:mt-4 sm:text-lg">
+              Quick answers about the product, browsers, privacy, and sign-in.
+            </p>
+            <div className="mt-12 sm:mt-14">
+              <LandingFaq items={faqItems} focusRing={focusRing} />
+            </div>
+          </div>
+        </section>
+
+        <footer
+          className="relative z-10 px-4 py-8 text-center text-xs leading-relaxed text-zinc-600 sm:px-6"
+          role="contentinfo"
+        >
+          <p>
+            © {new Date().getFullYear()} Vocis
+            <span className="mx-1.5 text-zinc-700" aria-hidden>
+              ·
             </span>
-            {showBeta ? (
-              <span className="shrink-0 rounded-full border border-white/70 bg-transparent px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white">
-                Beta
-              </span>
-            ) : null}
-          </div>
-          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-            <Link
-              href="/#start-interview"
-              className={`inline-flex items-center justify-center rounded-full bg-white px-4 py-2 text-sm font-semibold text-black transition motion-safe:hover:bg-zinc-200 ${focusRing}`}
-            >
-              Get started
-            </Link>
-            {showSignIn ? (
-              <Link
-                href="/login"
-                className={`inline-flex items-center justify-center rounded-full px-3 py-2 text-sm font-medium text-zinc-400 transition motion-safe:hover:text-white ${focusRing}`}
-              >
-                Sign in
-              </Link>
-            ) : null}
-          </div>
-        </nav>
-      </header>
-
-      <section
-        className="relative z-10 flex min-h-[calc(100dvh-4.5rem)] flex-col items-center justify-center overflow-hidden px-4 py-10 text-center sm:px-6 sm:py-14"
-        aria-labelledby="hero-heading"
-      >
-        <div className="relative z-10 mx-auto w-full max-w-5xl px-0 sm:px-2">
-          <div className="mx-auto max-w-3xl">
-            <h1
-              id="hero-heading"
-              className="text-4xl font-semibold leading-[1.08] tracking-tight sm:text-5xl sm:leading-[1.06]"
-            >
-              Practice interviews that feel real.
-            </h1>
-            <p className="mt-4 text-base leading-relaxed text-zinc-400 sm:mt-5 sm:text-lg">
-              Voice-first mock interviews. Questions tailored to your role and
-              resume—then clear, actionable feedback when you are done.
-            </p>
-          </div>
-          <div id="start-interview" className="w-full">
-            <LandingHeroComposer focusRing={focusRing} />
-          </div>
-          {showSignIn ? (
-            <p className="mt-6 text-center text-sm text-zinc-500">
-              <Link
-                href="/login"
-                className={`font-medium text-zinc-400 underline-offset-4 transition motion-safe:hover:text-white ${focusRing} rounded`}
-              >
-                Sign in
-              </Link>
-            </p>
-          ) : null}
-        </div>
-      </section>
-
-      <section
-        className="relative z-10 px-4 py-16 sm:px-6 sm:py-20"
-        aria-labelledby="bento-heading"
-      >
-        <div className="mx-auto max-w-5xl">
-          <h2
-            id="bento-heading"
-            className="text-2xl font-semibold tracking-tight sm:text-3xl"
-          >
-            Built for serious prep
-          </h2>
-          <p className="mt-2 max-w-2xl text-sm text-zinc-400 sm:text-base">
-            Voice session, context-aware questions, and a structured debrief—so
-            you know what to fix before the real interview.
+            <span className="text-zinc-500">
+              Earl John Pulido, in collaboration with Tutorial Dojo
+            </span>
           </p>
-          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {bento.map((item) => (
-              <div
-                key={item.title}
-                className="stitch-card motion-safe:transition motion-safe:hover:border-white/15 motion-safe:hover:bg-white/[0.045] p-6 sm:p-7"
-              >
-                <item.icon
-                  className="h-8 w-8 text-violet-400"
-                  aria-hidden
-                />
-                <h3 className="mt-4 text-lg font-semibold">{item.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-zinc-400">
-                  {item.description}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section
-        className="relative z-10 px-4 py-20 sm:px-6 sm:py-28"
-        aria-labelledby="faq-heading"
-      >
-        <div className="mx-auto max-w-5xl">
-          <h2
-            id="faq-heading"
-            className="text-center text-3xl font-semibold tracking-tight sm:text-4xl lg:text-5xl"
-          >
-            Questions?
-          </h2>
-          <p className="mx-auto mt-3 max-w-2xl text-center text-base leading-relaxed text-zinc-400 sm:mt-4 sm:text-lg">
-            Quick answers about the product, browsers, privacy, and sign-in.
-          </p>
-          <div className="mt-12 sm:mt-14">
-            <LandingFaq items={faqItems} focusRing={focusRing} />
-          </div>
-        </div>
-      </section>
-
-      <footer
-        className="relative z-10 px-4 py-8 text-center text-xs leading-relaxed text-zinc-600 sm:px-6"
-        role="contentinfo"
-      >
-        <p>
-          © {new Date().getFullYear()} Vocis
-          <span className="mx-1.5 text-zinc-700" aria-hidden>
-            ·
-          </span>
-          <span className="text-zinc-500">
-            Earl John Pulido, in collaboration with Tutorial Dojo
-          </span>
-        </p>
-      </footer>
-    </main>
+        </footer>
+      </main>
     </>
   );
 }

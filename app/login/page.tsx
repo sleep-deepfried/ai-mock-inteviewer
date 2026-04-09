@@ -2,6 +2,7 @@
 
 import { useState, useEffect, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 import { useAuth } from "@/context/auth-context";
 import { Mail } from "lucide-react";
 
@@ -10,11 +11,16 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [magicLinkSent, setMagicLinkSent] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && user) {
-      router.replace("/");
+      // Check if user has completed onboarding
+      const hasOnboarded = localStorage.getItem("vocis_onboarded") === "true";
+      if (hasOnboarded) {
+        router.replace("/dashboard");
+      } else {
+        router.replace("/onboarding");
+      }
     }
   }, [loading, user, router]);
 
@@ -22,19 +28,19 @@ export default function LoginPage() {
     try {
       await signInWithGoogle();
     } catch {
-      setError("Failed to sign in with Google.");
+      toast.error("Failed to sign in with Google.");
     }
   };
 
   const handleMagicLink = async (e: FormEvent) => {
     e.preventDefault();
-    setError(null);
     if (!email.trim()) return;
     try {
       await sendMagicLink(email);
       setMagicLinkSent(true);
+      toast.success("Check your email for a sign-in link.");
     } catch {
-      setError("Failed to send magic link.");
+      toast.error("Failed to send magic link.");
     }
   };
 
@@ -55,12 +61,6 @@ export default function LoginPage() {
             Sign in to start practicing with Vocis
           </p>
         </div>
-
-        {error && (
-          <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
-            {error}
-          </div>
-        )}
 
         {/* Google OAuth */}
         <button
@@ -119,7 +119,7 @@ export default function LoginPage() {
               type="submit"
               className="w-full rounded-xl bg-purple-600 py-3 text-sm font-semibold text-white transition hover:bg-purple-500"
             >
-              Send Magic Link
+              Login
             </button>
           </form>
         )}
