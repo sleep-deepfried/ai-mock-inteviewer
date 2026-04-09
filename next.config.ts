@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Serverless-compatible config for Vercel deployment
+  output: "standalone",
   serverExternalPackages: ["pdf-parse", "mammoth"],
 };
 

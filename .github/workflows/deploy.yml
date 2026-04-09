@@ -1,0 +1,70 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npx vitest run
+
+      - name: Build
+        run: npx next build
+
+      - name: Prepare artifact
+        run: |
+          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          echo "RELEASE_DIR=$TIMESTAMP" >> $GITHUB_ENV
+          mkdir -p artifact
+          cp -r .next/standalone artifact/
+          cp -r .next/static artifact/.next/static
+          mkdir -p artifact/public
+          cp -r public/* artifact/public/
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to EC2
+        env:
+          REMOTE_USER: ${{ secrets.EC2_USER }}
+          REMOTE_HOST: ${{ secrets.EC2_HOST }}
+          RELEASE_DIR: ${{ env.RELEASE_DIR }}
+        run: |
+          SSH_OPTS="-i ~/.ssh/deploy_key -o StrictHostKeyChecking=no"
+          RELEASE_PATH="/opt/vocis/releases/${RELEASE_DIR}"
+
+          # Create release directory
+          ssh $SSH_OPTS ${REMOTE_USER}@${REMOTE_HOST} "mkdir -p ${RELEASE_PATH}"
+
+          # Transfer artifact
+          rsync -az --delete -e "ssh ${SSH_OPTS}" artifact/ ${REMOTE_USER}@${REMOTE_HOST}:${RELEASE_PATH}/
+
+          # Restructure, symlink, restart, cleanup
+          ssh $SSH_OPTS ${REMOTE_USER}@${REMOTE_HOST} "
+            set -euo pipefail
+            mkdir -p ${RELEASE_PATH}/.next/standalone/.next/static
+            cp -r ${RELEASE_PATH}/.next/static/* ${RELEASE_PATH}/.next/standalone/.next/static/
+            cp -r ${RELEASE_PATH}/public ${RELEASE_PATH}/.next/standalone/public
+            ln -sfn ${RELEASE_PATH}/.next/standalone /opt/vocis/current
+            sudo systemctl restart vocis
+            cd /opt/vocis/releases && ls -1dt */ | tail -n +4 | xargs -r rm -rf
+          "
