@@ -37,6 +37,7 @@ function InterviewContent() {
   const router = useRouter();
   const sessionId = searchParams.get("sessionId");
   const jobRole = searchParams.get("role") || "Interview";
+  const interviewStyle = searchParams.get("style") || "technical";
 
   const {
     status,
@@ -50,7 +51,7 @@ function InterviewContent() {
     endSession,
     dismissError,
     transcript,
-  } = useInterview(sessionId);
+  } = useInterview(sessionId, jobRole, interviewStyle);
 
   const [isCameraOn, setIsCameraOn] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -292,8 +293,8 @@ function InterviewContent() {
               <ul className="mt-2 space-y-1 text-left text-xs text-gray-400">
                 <li>
                   • <span className="text-gray-300">Unmute</span> when you are
-                  ready to speak; audio streams to Gemini Live in real time
-                  (use headphones to reduce echo).
+                  ready to speak; audio streams to Gemini Live in real time (use
+                  headphones to reduce echo).
                 </li>
                 <li>
                   • Use a recent{" "}

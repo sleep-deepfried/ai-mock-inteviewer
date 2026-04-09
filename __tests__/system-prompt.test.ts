@@ -11,9 +11,9 @@ describe("System prompt unit tests", () => {
     expect(result).not.toContain("Interview Context:");
   });
 
-  it("output contains 'Alex Chen'", () => {
+  it("output contains 'Vocis'", () => {
     const result = buildSystemInstruction(null);
-    expect(result).toContain("Alex Chen");
+    expect(result).toContain("Vocis");
   });
 
   it("includes role and resume even when jobDescription is empty", () => {
@@ -38,7 +38,7 @@ describe("System prompt unit tests", () => {
       interviewStyle: "technical",
     });
 
-    expect(result).toContain("Alex Chen");
+    expect(result).toContain("Vocis");
     expect(result).toContain("Frontend Developer");
     expect(result).toContain("React and TypeScript required");
     expect(result).toContain("Built dashboards with React");

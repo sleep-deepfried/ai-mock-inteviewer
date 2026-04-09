@@ -61,7 +61,7 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   return btoa(binary);
 }
 
-export function useInterview(sessionId: string | null): UseInterviewReturn {
+export function useInterview(sessionId: string | null, role?: string, style?: string): UseInterviewReturn {
   const [status, setStatus] = useState<InterviewStatus>("idle");
   const [aiState, setAiState] = useState<AIState>("idle");
   const [timeRemaining, setTimeRemaining] = useState(SESSION_DURATION);
@@ -270,7 +270,7 @@ export function useInterview(sessionId: string | null): UseInterviewReturn {
         const tokenRes = await fetch("/api/interview/live-token", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sessionId }),
+          body: JSON.stringify({ sessionId, role, style }),
           signal: abortController.signal,
         });
         if (!tokenRes.ok) {

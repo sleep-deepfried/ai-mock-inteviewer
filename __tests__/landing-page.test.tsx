@@ -109,7 +109,7 @@ describe("Landing Page", () => {
     fireEvent.click(screen.getByRole("button", { name: /get started/i }));
     await waitFor(() => {
       expect(mockPush).toHaveBeenCalledWith(
-        "/interview?sessionId=session-abc&role=Software%20Engineer",
+        "/interview?sessionId=session-abc&role=Software%20Engineer&style=behavioral",
       );
     });
     expect(global.fetch).toHaveBeenCalled();
@@ -131,7 +131,7 @@ describe("Landing Page", () => {
     fireEvent.click(screen.getByRole("button", { name: /get started/i }));
     await waitFor(() => {
       expect(mockPush).toHaveBeenCalledWith(
-        "/interview?sessionId=session-xyz&role=Product%20Manager",
+        "/interview?sessionId=session-xyz&role=Product%20Manager&style=behavioral",
       );
     });
   });

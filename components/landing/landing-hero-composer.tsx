@@ -103,7 +103,7 @@ export function LandingHeroComposer({
       }
 
       router.push(
-        `/interview?sessionId=${encodeURIComponent(body.sessionId)}&role=${encodeURIComponent(trimmed)}`,
+        `/interview?sessionId=${encodeURIComponent(body.sessionId)}&role=${encodeURIComponent(trimmed)}&style=${focus}`,
       );
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Something went wrong");

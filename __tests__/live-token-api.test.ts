@@ -7,6 +7,7 @@ vi.mock("@/lib/auth", () => ({
 vi.mock("@/lib/session-store", () => ({
   sessionStore: {
     get: vi.fn(),
+    store: vi.fn(),
   },
 }));
 
@@ -36,6 +37,7 @@ import { sessionStore } from "@/lib/session-store";
 
 const mockGetAuthUser = vi.mocked(getAuthUser);
 const mockSessionGet = vi.mocked(sessionStore.get);
+const mockSessionStore = vi.mocked(sessionStore.store);
 
 function buildJsonRequest(body: unknown): Request {
   return {
@@ -94,5 +96,19 @@ describe("POST /api/interview/live-token", () => {
     mockSessionGet.mockReturnValue(null);
     const res = await POST(buildJsonRequest({ sessionId: "missing" }));
     expect(res.status).toBe(404);
+  });
+
+  it("recreates session from role/style when session missing but role provided", async () => {
+    mockSessionGet.mockReturnValue(null);
+    const res = await POST(
+      buildJsonRequest({ sessionId: "new-sid", role: "Frontend Engineer", style: "behavioral" }),
+    );
+    expect(res.status).toBe(200);
+    expect(mockSessionStore).toHaveBeenCalledWith("new-sid", expect.objectContaining({
+      jobRole: "Frontend Engineer",
+      interviewStyle: "behavioral",
+    }));
+    const body = await res.json();
+    expect(body.token).toBe("auth_tokens/test-token-123");
   });
 });

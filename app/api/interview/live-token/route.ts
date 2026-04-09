@@ -5,7 +5,7 @@ import {
   ThinkingLevel,
 } from "@google/genai";
 import { getAuthUser } from "@/lib/auth";
-import { sessionStore } from "@/lib/session-store";
+import { sessionStore, type InterviewStyle } from "@/lib/session-store";
 import { buildSystemInstruction } from "@/lib/system-prompt";
 import { GEMINI_LIVE_MODEL } from "@/lib/gemini-live-model";
 import { interviewLiveTools } from "@/lib/interview-live-tools";
@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let body: { sessionId?: string };
+  let body: { sessionId?: string; role?: string; style?: string };
   try {
     body = await request.json();
   } catch {
@@ -28,7 +28,26 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Session ID is required" }, { status: 400 });
   }
 
-  const entry = sessionStore.get(sessionId);
+  let entry = sessionStore.get(sessionId);
+  
+  // If session not found but we have role info, recreate it (handles server restarts)
+  if (!entry && body.role && typeof body.role === "string") {
+    const interviewStyle: InterviewStyle = 
+      body.style === "behavioral" || body.style === "technical" 
+        ? body.style 
+        : "technical";
+    
+    entry = {
+      jobRole: body.role,
+      jobDescription: "",
+      resumeText: "",
+      interviewStyle,
+      createdAt: Date.now(),
+      messages: [],
+    };
+    sessionStore.store(sessionId, entry);
+  }
+  
   if (!entry) {
     return NextResponse.json(
       { error: "Session not found or expired" },
