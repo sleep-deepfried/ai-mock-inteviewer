@@ -47,12 +47,10 @@ describe("Login Page", () => {
   it("renders magic link email input and button", () => {
     render(<LoginPage />);
     expect(screen.getByPlaceholderText(/you@example.com/i)).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /send magic link/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /login/i })).toBeInTheDocument();
   });
 
-  it("redirects when already authenticated", () => {
+  it("redirects to onboarding when already authenticated and not onboarded", () => {
     (useAuth as ReturnType<typeof vi.fn>).mockReturnValue({
       session: { access_token: "test" },
       user: { id: "user-1", email: "test@example.com" },
@@ -61,7 +59,15 @@ describe("Login Page", () => {
       sendMagicLink: vi.fn(),
       signOut: vi.fn(),
     });
+    // Mock localStorage to simulate not onboarded
+    const localStorageMock = {
+      getItem: vi.fn().mockReturnValue(null),
+      setItem: vi.fn(),
+      removeItem: vi.fn(),
+    };
+    Object.defineProperty(window, "localStorage", { value: localStorageMock });
+
     render(<LoginPage />);
-    expect(mockReplace).toHaveBeenCalledWith("/");
+    expect(mockReplace).toHaveBeenCalledWith("/onboarding");
   });
 });

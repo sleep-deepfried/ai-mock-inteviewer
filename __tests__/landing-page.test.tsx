@@ -7,7 +7,21 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush, replace: vi.fn(), prefetch: vi.fn() }),
 }));
 
+// Mock the auth context to avoid Supabase connection
+vi.mock("@/context/auth-context", () => ({
+  useAuth: vi.fn().mockReturnValue({
+    session: null,
+    user: null,
+    loading: false,
+    signInWithGoogle: vi.fn(),
+    sendMagicLink: vi.fn(),
+    signOut: vi.fn(),
+  }),
+  AuthProvider: ({ children }: { children: React.ReactNode }) => children,
+}));
+
 import HomePage from "@/app/page";
+import { useAuth } from "@/context/auth-context";
 
 describe("Landing Page", () => {
   const originalBypass = process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH;
@@ -16,8 +30,17 @@ describe("Landing Page", () => {
   beforeEach(() => {
     mockPush.mockClear();
     global.fetch = vi.fn();
-    process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH = "false";
+    process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH = "true";
     delete process.env.NEXT_PUBLIC_APP_STAGE;
+    // Reset mock to default (not logged in)
+    (useAuth as ReturnType<typeof vi.fn>).mockReturnValue({
+      session: null,
+      user: null,
+      loading: false,
+      signInWithGoogle: vi.fn(),
+      sendMagicLink: vi.fn(),
+      signOut: vi.fn(),
+    });
   });
 
   afterEach(() => {
@@ -42,41 +65,31 @@ describe("Landing Page", () => {
     ).toBeInTheDocument();
   });
 
-  it('renders header "Get started" and Stitch-style composer', () => {
+  it("renders header and Stitch-style composer", () => {
     render(<HomePage />);
-    const getStarted = screen.getByRole("link", { name: /^get started$/i });
-    expect(getStarted).toHaveAttribute("href", "/#start-interview");
     expect(
       screen.getByRole("textbox", {
-        name: /role or goal for your mock interview/i,
+        name: /job title or full job description/i,
       }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /submit—add your target role first/i }),
+      screen.getByRole("button", { name: /get started/i }),
     ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: /start mock interview/i }),
-    ).not.toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /^attach resume$/i }),
     ).toBeInTheDocument();
     expect(document.getElementById("landing-resume-input")).toBeTruthy();
     expect(screen.getByText(/^quick picks$/i)).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /use job role senior software engineer/i }),
+      screen.getByRole("button", {
+        name: /use job role senior software engineer/i,
+      }),
     ).toBeInTheDocument();
   });
 
-  it("shows an error when composer role is empty", async () => {
+  it("does not submit when composer role is empty", async () => {
     render(<HomePage />);
-    fireEvent.click(
-      screen.getByRole("button", { name: /submit—add your target role first/i }),
-    );
-    await waitFor(() => {
-      expect(screen.getByRole("alert")).toHaveTextContent(
-        /enter your target role above to start the interview/i,
-      );
-    });
+    fireEvent.click(screen.getByRole("button", { name: /get started/i }));
     expect(mockPush).not.toHaveBeenCalled();
     expect(global.fetch).not.toHaveBeenCalled();
   });
@@ -89,13 +102,11 @@ describe("Landing Page", () => {
     render(<HomePage />);
     fireEvent.change(
       screen.getByRole("textbox", {
-        name: /role or goal for your mock interview/i,
+        name: /job title or full job description/i,
       }),
       { target: { value: "Software Engineer" } },
     );
-    fireEvent.click(
-      screen.getByRole("button", { name: /start mock interview/i }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: /get started/i }));
     await waitFor(() => {
       expect(mockPush).toHaveBeenCalledWith(
         "/interview?sessionId=session-abc&role=Software%20Engineer",
@@ -114,10 +125,10 @@ describe("Landing Page", () => {
       screen.getByRole("button", { name: /use job role product manager/i }),
     );
     const box = screen.getByRole("textbox", {
-      name: /role or goal for your mock interview/i,
+      name: /job title or full job description/i,
     });
     expect(box).toHaveValue("Product Manager");
-    fireEvent.click(screen.getByRole("button", { name: /start mock interview/i }));
+    fireEvent.click(screen.getByRole("button", { name: /get started/i }));
     await waitFor(() => {
       expect(mockPush).toHaveBeenCalledWith(
         "/interview?sessionId=session-xyz&role=Product%20Manager",
@@ -137,12 +148,8 @@ describe("Landing Page", () => {
     expect(
       screen.getByRole("heading", { name: /questions\?/i }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText(/what is vocis\?/i),
-    ).toBeInTheDocument();
-    fireEvent.click(
-      screen.getByRole("button", { name: /what is vocis/i }),
-    );
+    expect(screen.getByText(/what is vocis\?/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /what is vocis/i }));
     expect(
       screen.getByText(/safe space to rehearse a real interview out loud/i),
     ).toBeInTheDocument();
@@ -162,21 +169,28 @@ describe("Landing Page", () => {
     );
   });
 
-  it('renders "Sign in" links pointing to /login when dev bypass is off', () => {
-    process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH = "false";
+  it('renders "Sign in" link when not authenticated', () => {
     render(<HomePage />);
-    const signInLinks = screen.getAllByRole("link", { name: /sign in/i });
-    expect(signInLinks.length).toBeGreaterThanOrEqual(1);
-    signInLinks.forEach((link) => {
-      expect(link).toHaveAttribute("href", "/login");
-    });
+    const signInLink = screen.getByRole("link", { name: /sign in/i });
+    expect(signInLink).toHaveAttribute("href", "/login");
   });
 
-  it('does not render "Sign in" when dev bypass is on', () => {
-    process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH = "true";
+  it("shows avatar dropdown when user is logged in", () => {
+    (useAuth as ReturnType<typeof vi.fn>).mockReturnValue({
+      session: { access_token: "test" },
+      user: {
+        id: "user-1",
+        email: "test@example.com",
+        user_metadata: { full_name: "Test User" },
+      },
+      loading: false,
+      signInWithGoogle: vi.fn(),
+      sendMagicLink: vi.fn(),
+      signOut: vi.fn(),
+    });
     render(<HomePage />);
     expect(
-      screen.queryByRole("link", { name: /sign in/i }),
+      screen.queryByRole("link", { name: /^sign in$/i }),
     ).not.toBeInTheDocument();
   });
 
