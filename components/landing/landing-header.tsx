@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/auth-context";
+import { saveComposerState } from "@/components/landing/landing-hero-composer";
 import { ChevronDown, LogOut } from "lucide-react";
 
 interface LandingHeaderProps {
@@ -127,7 +128,24 @@ export function LandingHeader({ showBeta, focusRing }: LandingHeaderProps) {
             <>
               <Link
                 href="/login"
-                className={`inline-flex items-center justify-center rounded-full px-3 py-2 text-sm font-medium text-zinc-400 transition motion-safe:hover:text-white ${focusRing}`}
+                onClick={() => {
+                  // Try to capture composer state from the DOM before navigating
+                  const textarea = document.getElementById(
+                    "landing-hero-prompt",
+                  ) as HTMLTextAreaElement | null;
+                  const role = textarea?.value?.trim() || "";
+                  const behavioralBtn = document.querySelector(
+                    '[aria-pressed="true"][aria-label*="Behavioral"]',
+                  );
+                  const style = behavioralBtn ? "behavioral" : "technical";
+                  if (role) {
+                    saveComposerState(
+                      role,
+                      style as "behavioral" | "technical",
+                    );
+                  }
+                }}
+                className={`inline-flex items-center justify-center rounded-full border border-white/20 bg-white/5 px-4 py-2 text-sm font-medium text-white transition hover:border-white/30 hover:bg-white/10 ${focusRing}`}
               >
                 Sign in
               </Link>

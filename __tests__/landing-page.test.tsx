@@ -151,13 +151,15 @@ describe("Landing Page", () => {
     expect(screen.getByText(/what is vocis\?/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /what is vocis/i }));
     expect(
-      screen.getByText(/safe space to rehearse a real interview out loud/i),
+      screen.getByText(/personal interview practice space/i),
     ).toBeInTheDocument();
     fireEvent.click(
       screen.getByRole("button", { name: /which browser works best/i }),
     );
     expect(
-      screen.getByText(/smoothest time on desktop chrome, edge, or arc/i),
+      screen.getByText(
+        /desktop chrome, edge, or arc give you the best experience/i,
+      ),
     ).toBeInTheDocument();
   });
 

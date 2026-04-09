@@ -1,6 +1,12 @@
 "use client";
 
-import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import {
+  useRef,
+  useState,
+  useEffect,
+  type ChangeEvent,
+  type FormEvent,
+} from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import {
@@ -29,6 +35,35 @@ interface LandingHeroComposerProps {
   defaultRole?: string;
 }
 
+/** Save composer state to sessionStorage for restoration after login */
+export function saveComposerState(role: string, style: FocusMode) {
+  if (typeof window !== "undefined") {
+    sessionStorage.setItem("vocis_composer_role", role);
+    sessionStorage.setItem("vocis_composer_style", style);
+  }
+}
+
+/** Get saved composer state from sessionStorage */
+function getSavedComposerState(): { role: string; style: FocusMode } | null {
+  if (typeof window === "undefined") return null;
+  const role = sessionStorage.getItem("vocis_composer_role");
+  const style = sessionStorage.getItem(
+    "vocis_composer_style",
+  ) as FocusMode | null;
+  if (role) {
+    return { role, style: style === "technical" ? "technical" : "behavioral" };
+  }
+  return null;
+}
+
+/** Clear saved composer state */
+function clearComposerState() {
+  if (typeof window !== "undefined") {
+    sessionStorage.removeItem("vocis_composer_role");
+    sessionStorage.removeItem("vocis_composer_style");
+  }
+}
+
 export function LandingHeroComposer({
   focusRing,
   defaultRole = "",
@@ -46,6 +81,16 @@ export function LandingHeroComposer({
   const typewriterDisplay = useCyclingTypewriter(
     placeholderActive && !reducedMotion,
   );
+
+  // Restore saved state on mount
+  useEffect(() => {
+    const saved = getSavedComposerState();
+    if (saved) {
+      setPrompt(saved.role);
+      setFocus(saved.style);
+      clearComposerState();
+    }
+  }, []);
 
   function onResumePicked(e: ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
@@ -82,6 +127,8 @@ export function LandingHeroComposer({
       });
 
       if (res.status === 401) {
+        // Save composer state before redirecting to login
+        saveComposerState(trimmed, focus);
         router.push("/login");
         return;
       }
@@ -235,17 +282,26 @@ export function LandingHeroComposer({
           </div>
 
           <div
-            className="inline-flex rounded-full bg-zinc-800/90 p-1"
+            className="relative inline-flex rounded-full bg-zinc-800/90 p-1"
             role="group"
             aria-label="Interview focus"
           >
+            {/* Sliding background indicator */}
+            <div
+              className={`absolute top-1 bottom-1 w-[calc(50%-2px)] rounded-full bg-zinc-600/90 transition-transform duration-200 ease-out ${
+                focus === "technical"
+                  ? "translate-x-[calc(100%+4px)]"
+                  : "translate-x-0"
+              }`}
+              aria-hidden
+            />
             <button
               type="button"
               aria-pressed={focus === "behavioral"}
               onClick={() => setFocus("behavioral")}
-              className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition sm:px-4 sm:py-2.5 sm:text-base ${
+              className={`relative z-10 inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-colors duration-200 sm:px-4 sm:py-2.5 sm:text-base ${
                 focus === "behavioral"
-                  ? "bg-zinc-600/90 text-white"
+                  ? "text-white"
                   : "text-zinc-400 motion-safe:hover:text-zinc-200"
               } ${focusRing}`}
             >
@@ -256,9 +312,9 @@ export function LandingHeroComposer({
               type="button"
               aria-pressed={focus === "technical"}
               onClick={() => setFocus("technical")}
-              className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition sm:px-4 sm:py-2.5 sm:text-base ${
+              className={`relative z-10 inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-colors duration-200 sm:px-4 sm:py-2.5 sm:text-base ${
                 focus === "technical"
-                  ? "bg-zinc-600/90 text-white"
+                  ? "text-white"
                   : "text-zinc-400 motion-safe:hover:text-zinc-200"
               } ${focusRing}`}
             >

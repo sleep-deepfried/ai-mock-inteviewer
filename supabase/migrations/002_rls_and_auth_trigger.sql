@@ -8,6 +8,18 @@ ALTER TABLE interview_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE scorecards ENABLE ROW LEVEL SECURITY;
 ALTER TABLE completed_labs ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies if they exist (for idempotent migrations)
+DROP POLICY IF EXISTS "Users can view own profile" ON users;
+DROP POLICY IF EXISTS "Users can update own profile" ON users;
+DROP POLICY IF EXISTS "Service can insert users" ON users;
+DROP POLICY IF EXISTS "Users can view own sessions" ON interview_sessions;
+DROP POLICY IF EXISTS "Users can insert own sessions" ON interview_sessions;
+DROP POLICY IF EXISTS "Users can update own sessions" ON interview_sessions;
+DROP POLICY IF EXISTS "Users can view own scorecards" ON scorecards;
+DROP POLICY IF EXISTS "Users can insert own scorecards" ON scorecards;
+DROP POLICY IF EXISTS "Users can view own completed labs" ON completed_labs;
+DROP POLICY IF EXISTS "Users can insert own completed labs" ON completed_labs;
+
 -- Users table policies
 CREATE POLICY "Users can view own profile"
   ON users FOR SELECT

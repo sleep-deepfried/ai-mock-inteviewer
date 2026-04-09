@@ -85,6 +85,13 @@ export async function POST(request: Request) {
           model: GEMINI_LIVE_MODEL,
           config: {
             responseModalities: [Modality.AUDIO],
+            speechConfig: {
+              voiceConfig: {
+                prebuiltVoiceConfig: {
+                  voiceName: "Zephyr", // Bright female voice for interviewer persona
+                },
+              },
+            },
             systemInstruction: { parts: [{ text: systemInstruction }] },
             inputAudioTranscription: {},
             outputAudioTranscription: {},

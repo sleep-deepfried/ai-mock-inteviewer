@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Mic, Target, LineChart } from "lucide-react";
+import { Mic, Target, LineChart, Smartphone } from "lucide-react";
 import { LandingFaq, type FaqItem } from "@/components/landing/landing-faq";
 import { LandingHeader } from "@/components/landing/landing-header";
 import { LandingHeroComposer } from "@/components/landing/landing-hero-composer";
@@ -29,27 +29,27 @@ const faqItems: FaqItem[] = [
   {
     question: "What is Vocis?",
     answer:
-      "It is a safe space to rehearse a real interview out loud. You pick the role you want, choose whether you want more behavioral or technical questions, add a resume if you like, then you talk—and hear an interviewer respond in real time. When you are done, you get clear feedback on what went well and what to tighten before the actual interview.",
+      "Vocis is your personal interview practice space. Pick a role, choose behavioral or technical focus, optionally upload your resume, then have a real-time voice conversation with an AI interviewer. When you finish, you get clear feedback on what went well and what to improve before your actual interview.",
   },
   {
     question: "Which browser works best?",
     answer:
-      "You will have the smoothest time on desktop Chrome, Edge, or Arc. When your browser asks to use the microphone, say yes—that is how you are heard. A steady Wi‑Fi or wired connection also helps so your voice and captions stay in sync. If you use something else, it might still work, just expect a few more hiccups.",
+      "Desktop Chrome, Edge, or Arc give you the best experience. Make sure to allow microphone access when prompted—that is how the AI hears you. A stable internet connection helps keep your voice and the AI responses in sync. Other browsers may work but might have occasional hiccups.",
   },
   {
     question: "Is my conversation or resume stored?",
     answer:
-      "Your answers and optional resume are used to run your practice and to create the feedback you see—nothing more mysterious than that. How long data is kept depends on the privacy policy of whoever gave you access (for example your employer, school, or the company behind this link). Please do not paste passwords, secret codes, or confidential work material.",
+      "Your session data and resume are used only to run your practice and generate feedback. We do not share or sell your information. Please avoid pasting passwords, API keys, or confidential work material during your sessions.",
   },
   {
     question: "Do I need an account?",
     answer:
-      "Almost always, yes. You sign in so your sessions stay private to you—commonly with Google or a one-time link sent to your email. That is the version meant for real practice.",
+      "Yes, signing in keeps your sessions private and lets you track your progress over time. You can sign in with Google or request a magic link sent to your email—quick and secure.",
   },
   {
     question: "Is this free? What does Beta mean?",
     answer:
-      "Cost is up to whoever invited you—some programs include it at no charge, others bundle it with coaching or internal tools. If you see Beta, we are still improving the experience, so small things may change; it is not a trick charge, just an honest heads-up that you are among the early users.",
+      "Yes, Vocis is completely free to use. The Beta label means we are actively refining the experience based on user feedback—expect occasional updates and improvements. You are helping shape the product by being an early user, and we appreciate it.",
   },
 ];
 
@@ -128,6 +128,50 @@ export default function HomePage() {
                   </p>
                 </div>
               ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Mobile App Coming Soon */}
+        <section className="relative z-10 px-4 py-12 sm:px-6 sm:py-16">
+          <div className="mx-auto max-w-5xl">
+            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-violet-950/50 via-zinc-900/80 to-zinc-900/80 p-6 sm:rounded-3xl sm:p-10">
+              <div
+                className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-violet-500/10 blur-3xl"
+                aria-hidden
+              />
+              <div
+                className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-purple-500/10 blur-3xl"
+                aria-hidden
+              />
+              <div className="relative flex flex-col items-center gap-6 text-center sm:flex-row sm:text-left">
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-violet-500/15 sm:h-20 sm:w-20">
+                  <Smartphone
+                    className="h-8 w-8 text-violet-400 sm:h-10 sm:w-10"
+                    aria-hidden
+                  />
+                </div>
+                <div className="flex-1">
+                  <div className="inline-flex items-center gap-2">
+                    <h3 className="text-xl font-semibold sm:text-2xl">
+                      Mobile App
+                    </h3>
+                    <span className="rounded-full bg-violet-500/20 px-2.5 py-0.5 text-xs font-semibold text-violet-300">
+                      Coming Soon
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm leading-relaxed text-zinc-400 sm:text-base">
+                    Practice interviews on the go. Get notified when the iOS and
+                    Android apps launch.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="shrink-0 rounded-full border border-violet-500/30 bg-violet-500/10 px-5 py-2.5 text-sm font-medium text-violet-300 transition hover:border-violet-500/50 hover:bg-violet-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                >
+                  Notify me
+                </button>
+              </div>
             </div>
           </div>
         </section>
