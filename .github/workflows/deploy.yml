@@ -30,11 +30,25 @@ jobs:
         run: |
           TIMESTAMP=$(date +%Y%m%d_%H%M%S)
           echo "RELEASE_DIR=$TIMESTAMP" >> $GITHUB_ENV
+
+          # Debug: show what standalone contains
+          echo "=== .next/standalone contents ==="
+          ls -la .next/standalone/
+          echo "=== .next/standalone/.next contents ==="
+          ls -la .next/standalone/.next/ || echo "No .next dir in standalone"
+
+          # Copy standalone output (includes server.js, node_modules, .next build output)
           mkdir -p artifact
-          cp -r .next/standalone/* artifact/
+          cp -r .next/standalone/. artifact/
+
+          # Add static files and public assets
           mkdir -p artifact/.next/static
-          cp -r .next/static/* artifact/.next/static/
+          cp -r .next/static/. artifact/.next/static/
           cp -r public artifact/public
+
+          # Debug: verify artifact structure
+          echo "=== artifact/.next contents ==="
+          ls -la artifact/.next/
 
       - name: Setup SSH
         run: |

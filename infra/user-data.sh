@@ -43,6 +43,7 @@ Type=simple
 User=vocis
 EnvironmentFile=/opt/vocis/.env
 Environment=HOSTNAME=127.0.0.1 PORT=3000
+WorkingDirectory=/opt/vocis/current
 ExecStart=/usr/bin/node /opt/vocis/current/server.js
 Restart=on-failure
 RestartSec=5
