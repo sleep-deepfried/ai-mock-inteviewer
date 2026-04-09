@@ -31,10 +31,10 @@ jobs:
           TIMESTAMP=$(date +%Y%m%d_%H%M%S)
           echo "RELEASE_DIR=$TIMESTAMP" >> $GITHUB_ENV
           mkdir -p artifact
-          cp -r .next/standalone artifact/
-          cp -r .next/static artifact/.next/static
-          mkdir -p artifact/public
-          cp -r public/* artifact/public/
+          cp -r .next/standalone/* artifact/
+          mkdir -p artifact/.next/static
+          cp -r .next/static/* artifact/.next/static/
+          cp -r public artifact/public
 
       - name: Setup SSH
         run: |
@@ -58,13 +58,10 @@ jobs:
           # Transfer artifact
           rsync -az --delete -e "ssh ${SSH_OPTS}" artifact/ ${REMOTE_USER}@${REMOTE_HOST}:${RELEASE_PATH}/
 
-          # Restructure, symlink, restart, cleanup
+          # Symlink, restart, cleanup
           ssh $SSH_OPTS ${REMOTE_USER}@${REMOTE_HOST} "
             set -euo pipefail
-            mkdir -p ${RELEASE_PATH}/.next/standalone/.next/static
-            cp -r ${RELEASE_PATH}/.next/static/* ${RELEASE_PATH}/.next/standalone/.next/static/
-            cp -r ${RELEASE_PATH}/public ${RELEASE_PATH}/.next/standalone/public
-            ln -sfn ${RELEASE_PATH}/.next/standalone /opt/vocis/current
+            ln -sfn ${RELEASE_PATH} /opt/vocis/current
             sudo systemctl restart vocis
             cd /opt/vocis/releases && ls -1dt */ | tail -n +4 | xargs -r rm -rf
           "
