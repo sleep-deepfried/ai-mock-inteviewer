@@ -1,4 +1,6 @@
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import type { User } from "@supabase/supabase-js";
+import { headers } from "next/headers";
 
 /** Synthetic dev user returned when auth bypass is enabled. */
 const DEV_USER: User = {
@@ -17,15 +19,36 @@ const DEV_USER: User = {
 /**
  * Get the authenticated user from the request.
  *
- * When `NEXT_PUBLIC_DEV_BYPASS_AUTH` is `"true"`, returns a synthetic dev user
- * without contacting Supabase. Otherwise delegates to the Supabase server client.
+ * Resolution order:
+ * 1. Dev bypass (NEXT_PUBLIC_DEV_BYPASS_AUTH=true)
+ * 2. Bearer token from Authorization header (iOS / mobile clients)
+ * 3. Supabase server cookies (web browser sessions)
  */
 export async function getAuthUser(): Promise<User | null> {
   if (process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH === "true") {
     return DEV_USER;
   }
 
-  // Dynamic import to avoid pulling in cookie-dependent code at module level
+  // 1. Check for Bearer token (mobile clients send Authorization: Bearer <jwt>)
+  const headerStore = await headers();
+  const authHeader = headerStore.get("authorization") ?? headerStore.get("Authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    const token = authHeader.slice(7);
+    if (token) {
+      try {
+        const supabase = createSupabaseClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        );
+        const { data: { user } } = await supabase.auth.getUser(token);
+        if (user) return user;
+      } catch {
+        // Token invalid or expired — fall through to cookie auth
+      }
+    }
+  }
+
+  // 2. Fall back to cookie-based auth (web browser)
   const { createClient } = await import("@/lib/supabase/server");
   const supabase = await createClient();
   const {
