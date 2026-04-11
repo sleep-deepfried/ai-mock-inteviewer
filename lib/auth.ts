@@ -30,22 +30,26 @@ export async function getAuthUser(): Promise<User | null> {
   }
 
   // 1. Check for Bearer token (mobile clients send Authorization: Bearer <jwt>)
-  const headerStore = await headers();
-  const authHeader = headerStore.get("authorization") ?? headerStore.get("Authorization");
-  if (authHeader?.startsWith("Bearer ")) {
-    const token = authHeader.slice(7);
-    if (token) {
-      try {
-        const supabase = createSupabaseClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        );
-        const { data: { user } } = await supabase.auth.getUser(token);
-        if (user) return user;
-      } catch {
-        // Token invalid or expired — fall through to cookie auth
+  try {
+    const headerStore = await headers();
+    const authHeader = headerStore.get("authorization") ?? headerStore.get("Authorization");
+    if (authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.slice(7);
+      if (token) {
+        try {
+          const supabase = createSupabaseClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+          );
+          const { data: { user } } = await supabase.auth.getUser(token);
+          if (user) return user;
+        } catch {
+          // Token invalid or expired — fall through to cookie auth
+        }
       }
     }
+  } catch {
+    // headers() throws outside a request scope (e.g. in tests) — skip Bearer check
   }
 
   // 2. Fall back to cookie-based auth (web browser)
