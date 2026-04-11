@@ -8,25 +8,30 @@ export async function GET() {
   }
 
   if (process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH === "true") {
-    return NextResponse.json({ sessions: [], stats: { total: 0, avgScore: 0 } });
+    return NextResponse.json({ sessions: [], stats: { total: 0, topRole: null, totalPracticeMinutes: 0, lastInterviewDate: null } });
   }
 
   const { createClient } = await import("@/lib/supabase/server");
   const supabase = await createClient();
 
   // Get user row from users table
-  const { data: dbUser } = await supabase
+  const { data: dbUser, error: userError } = await supabase
     .from("users")
     .select("id")
     .eq("email", user.email)
     .single();
 
+  if (userError) {
+    console.error("History API - user lookup error:", userError.message, "for email:", user.email);
+  }
+
   if (!dbUser) {
-    return NextResponse.json({ sessions: [], stats: { total: 0, avgScore: 0 } });
+    console.log("History API - no dbUser found for email:", user.email);
+    return NextResponse.json({ sessions: [], stats: { total: 0, topRole: null, totalPracticeMinutes: 0, lastInterviewDate: null } });
   }
 
   // Fetch recent sessions with scorecards
-  const { data: sessions } = await supabase
+  const { data: sessions, error: sessionsError } = await supabase
     .from("interview_sessions")
     .select(`
       id,
@@ -46,17 +51,38 @@ export async function GET() {
     .order("started_at", { ascending: false })
     .limit(10);
 
-  const completed = sessions ?? [];
-  const scores = completed
-    .map((s) => {
-      const sc = Array.isArray(s.scorecards) ? s.scorecards[0] : s.scorecards;
-      return sc?.overall_score ?? null;
-    })
-    .filter((s): s is number => s !== null);
+  if (sessionsError) {
+    console.error("History API - sessions query error:", sessionsError.message);
+  }
 
-  const avgScore = scores.length > 0
-    ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
-    : 0;
+  const completed = sessions ?? [];
+
+  // Last interview date
+  const lastInterviewDate = completed.length > 0 ? completed[0].started_at : null;
+
+  // Calculate total practice time in minutes
+  const totalPracticeMinutes = completed.reduce((total, s) => {
+    if (s.started_at && s.ended_at) {
+      const start = new Date(s.started_at).getTime();
+      const end = new Date(s.ended_at).getTime();
+      const durationMs = end - start;
+      // Only count positive durations (filter out bad data)
+      if (durationMs > 0) {
+        return total + Math.round(durationMs / 60000);
+      }
+    }
+    return total;
+  }, 0);
+
+  // Find most practiced role
+  const roleCounts: Record<string, number> = {};
+  completed.forEach((s) => {
+    const role = (s.metadata as Record<string, unknown>)?.role as string;
+    if (role) {
+      roleCounts[role] = (roleCounts[role] || 0) + 1;
+    }
+  });
+  const topRole = Object.entries(roleCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
 
   return NextResponse.json({
     sessions: completed.map((s) => {
@@ -72,7 +98,9 @@ export async function GET() {
     }),
     stats: {
       total: completed.length,
-      avgScore,
+      topRole,
+      totalPracticeMinutes,
+      lastInterviewDate,
     },
   });
 }

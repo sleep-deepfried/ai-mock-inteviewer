@@ -5,10 +5,38 @@ import { ProtectedRoute } from "@/components/protected-route";
 import { LandingHeroComposer } from "@/components/landing/landing-hero-composer";
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
-import { BarChart3, Clock, Trophy, LogOut, ChevronDown } from "lucide-react";
+import {
+  Briefcase,
+  Clock,
+  Timer,
+  LogOut,
+  ChevronDown,
+  Calendar,
+} from "lucide-react";
+import { StatSkeleton, InterviewListSkeleton } from "@/components/skeleton";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black";
+
+/** Format a date as relative time (e.g., "2 days ago") */
+function formatRelativeTime(dateStr: string | null): string {
+  if (!dateStr) return "No interviews yet";
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+
+  if (diffMinutes < 1) return "Just now";
+  if (diffMinutes < 60) return `${diffMinutes} min ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays < 7) return `${diffDays} days ago`;
+  if (diffDays < 30)
+    return `${Math.floor(diffDays / 7)} week${Math.floor(diffDays / 7) > 1 ? "s" : ""} ago`;
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
 
 interface SessionItem {
   id: string;
@@ -21,7 +49,9 @@ interface SessionItem {
 
 interface DashboardStats {
   total: number;
-  avgScore: number;
+  topRole: string | null;
+  totalPracticeMinutes: number;
+  lastInterviewDate: string | null;
 }
 
 export default function DashboardPage() {
@@ -36,7 +66,12 @@ function DashboardContent() {
   const { user, signOut } = useAuth();
   const router = useRouter();
   const [sessions, setSessions] = useState<SessionItem[]>([]);
-  const [stats, setStats] = useState<DashboardStats>({ total: 0, avgScore: 0 });
+  const [stats, setStats] = useState<DashboardStats>({
+    total: 0,
+    topRole: null,
+    totalPracticeMinutes: 0,
+    lastInterviewDate: null,
+  });
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
@@ -221,7 +256,7 @@ function DashboardContent() {
 
         {/* Stats */}
         <section
-          className="mb-10 grid grid-cols-2 gap-4 sm:grid-cols-3"
+          className="mb-10 grid grid-cols-2 gap-4 sm:grid-cols-5"
           aria-label="Your stats"
         >
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
@@ -231,35 +266,64 @@ function DashboardContent() {
                 Interviews
               </span>
             </div>
-            <p className="mt-2 text-3xl font-bold tabular-nums">
-              {loading ? "—" : stats.total}
-            </p>
+            <div className="mt-2">
+              {loading ? (
+                <StatSkeleton />
+              ) : (
+                <p className="text-3xl font-bold tabular-nums">{stats.total}</p>
+              )}
+            </div>
+          </div>
+          <div className="col-span-2 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+            <div className="flex items-center gap-2 text-zinc-400">
+              <Briefcase className="h-4 w-4" aria-hidden />
+              <span className="text-xs font-medium uppercase tracking-wider">
+                Top Role
+              </span>
+            </div>
+            <div className="mt-2">
+              {loading ? (
+                <StatSkeleton wide />
+              ) : (
+                <p className="text-lg font-bold">{stats.topRole ?? "—"}</p>
+              )}
+            </div>
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
             <div className="flex items-center gap-2 text-zinc-400">
-              <Trophy className="h-4 w-4" aria-hidden />
+              <Timer className="h-4 w-4" aria-hidden />
               <span className="text-xs font-medium uppercase tracking-wider">
-                Avg Score
+                Practice Time
               </span>
             </div>
-            <p className="mt-2 text-3xl font-bold tabular-nums">
-              {loading ? "—" : stats.avgScore > 0 ? stats.avgScore : "—"}
-            </p>
+            <div className="mt-2">
+              {loading ? (
+                <StatSkeleton />
+              ) : (
+                <p className="text-3xl font-bold tabular-nums">
+                  {stats.totalPracticeMinutes > 0
+                    ? `${stats.totalPracticeMinutes}m`
+                    : "—"}
+                </p>
+              )}
+            </div>
           </div>
-          <div className="col-span-2 rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:col-span-1">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
             <div className="flex items-center gap-2 text-zinc-400">
-              <BarChart3 className="h-4 w-4" aria-hidden />
+              <Calendar className="h-4 w-4" aria-hidden />
               <span className="text-xs font-medium uppercase tracking-wider">
-                Best Score
+                Last Interview
               </span>
             </div>
-            <p className="mt-2 text-3xl font-bold tabular-nums">
-              {loading
-                ? "—"
-                : sessions.length > 0
-                  ? Math.max(...sessions.map((s) => s.score ?? 0)) || "—"
-                  : "—"}
-            </p>
+            <div className="mt-2">
+              {loading ? (
+                <StatSkeleton wide />
+              ) : (
+                <p className="text-lg font-bold">
+                  {formatRelativeTime(stats.lastInterviewDate)}
+                </p>
+              )}
+            </div>
           </div>
         </section>
 
@@ -283,10 +347,7 @@ function DashboardContent() {
             Recent interviews
           </h2>
           {loading ? (
-            <div className="flex items-center gap-3 py-8 text-sm text-zinc-500">
-              <div className="h-5 w-5 animate-spin rounded-full border-2 border-purple-500 border-t-transparent" />
-              Loading history…
-            </div>
+            <InterviewListSkeleton count={3} />
           ) : sessions.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-white/10 px-6 py-10 text-center">
               <p className="text-sm text-zinc-500">
