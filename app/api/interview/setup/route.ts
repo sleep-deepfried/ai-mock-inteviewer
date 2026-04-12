@@ -15,6 +15,10 @@ import {
   type InterviewStyle,
 } from "@/lib/session-store";
 import { getAuthUser } from "@/lib/auth";
+import {
+  getClientIp,
+  checkTrialSetupRateLimit,
+} from "@/lib/trial-setup-rate-limit";
 
 const ALLOWED_MIME_TYPES = new Set([
   "application/pdf",
@@ -42,17 +46,38 @@ export function validateResumeFile(
 
 export async function POST(request: Request) {
   try {
-    // Auth check
-    const user = await getAuthUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const formData = await request.formData();
     const role = formData.get("role");
     const description = formData.get("description");
     const resume = formData.get("resume");
     const interviewStyleRaw = formData.get("interviewStyle");
+    const trialRaw = formData.get("trial");
+
+    const isTrial = trialRaw === "true";
+
+    // Auth check - allow anonymous for trial mode
+    const user = await getAuthUser();
+    if (!user && !isTrial) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Trial mode restrictions
+    if (isTrial) {
+      // Check rate limit for trial
+      const clientIp = getClientIp(request);
+      const rateLimitError = checkTrialSetupRateLimit(clientIp);
+      if (rateLimitError) {
+        return NextResponse.json({ error: rateLimitError }, { status: 429 });
+      }
+
+      // Trial mode doesn't allow resume uploads
+      if (resume && resume instanceof File && resume.size > 0) {
+        return NextResponse.json(
+          { error: "Resume uploads are not available in web trial mode" },
+          { status: 400 }
+        );
+      }
+    }
 
     let interviewStyle: InterviewStyle = "technical";
     if (
@@ -72,8 +97,8 @@ export async function POST(request: Request) {
 
     let resumeText = "";
 
-    // File validation and resume parsing
-    if (resume && resume instanceof File && resume.size > 0) {
+    // File validation and resume parsing (only for authenticated users)
+    if (!isTrial && resume && resume instanceof File && resume.size > 0) {
       const validationError = validateResumeFile(resume.type, resume.size);
       if (validationError) {
         return NextResponse.json({ error: validationError }, { status: 400 });
@@ -100,6 +125,7 @@ export async function POST(request: Request) {
       jobDescription: typeof description === "string" ? description.trim() : "",
       resumeText,
       interviewStyle,
+      isTrial,
       createdAt: Date.now(),
       messages: [],
     };
