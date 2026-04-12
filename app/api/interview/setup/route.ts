@@ -1,8 +1,9 @@
 /**
  * Interview Setup API route.
  *
- * - **Web trial:** `trial=true` — no auth; resume upload not allowed; `isTrial` session.
- * - **Mobile / legacy:** Bearer session — full resume support; `isTrial: false`.
+ * Accepts multipart form POST with role (required), description (optional),
+ * and resume file (optional). Validates file type/size, parses resume,
+ * stores context in session store, and returns a session ID.
  */
 
 import { NextResponse } from "next/server";
@@ -14,10 +15,6 @@ import {
   type InterviewStyle,
 } from "@/lib/session-store";
 import { getAuthUser } from "@/lib/auth";
-import {
-  checkTrialSetupRateLimit,
-  getClientIp,
-} from "@/lib/trial-setup-rate-limit";
 
 const ALLOWED_MIME_TYPES = new Set([
   "application/pdf",
@@ -43,30 +40,15 @@ export function validateResumeFile(
   return null;
 }
 
-function isTrialFormValue(raw: FormDataEntryValue | null): boolean {
-  if (raw == null) return false;
-  if (typeof raw !== "string") return false;
-  const v = raw.trim().toLowerCase();
-  return v === "true" || v === "1" || v === "yes";
-}
-
 export async function POST(request: Request) {
   try {
-    const formData = await request.formData();
-    const trialRequested = isTrialFormValue(formData.get("trial"));
-
-    if (trialRequested) {
-      const limited = checkTrialSetupRateLimit(getClientIp(request));
-      if (limited) {
-        return NextResponse.json({ error: limited }, { status: 429 });
-      }
-    } else {
-      const user = await getAuthUser();
-      if (!user) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
+    // Auth check
+    const user = await getAuthUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const formData = await request.formData();
     const role = formData.get("role");
     const description = formData.get("description");
     const resume = formData.get("resume");
@@ -80,6 +62,7 @@ export async function POST(request: Request) {
       interviewStyle = interviewStyleRaw;
     }
 
+    // Validate required field
     if (!role || typeof role !== "string" || !role.trim()) {
       return NextResponse.json(
         { error: "Job role is required" },
@@ -89,19 +72,14 @@ export async function POST(request: Request) {
 
     let resumeText = "";
 
-    if (trialRequested) {
-      if (resume && resume instanceof File && resume.size > 0) {
-        return NextResponse.json(
-          { error: "Resume upload is not available for the web trial." },
-          { status: 400 }
-        );
-      }
-    } else if (resume && resume instanceof File && resume.size > 0) {
+    // File validation and resume parsing
+    if (resume && resume instanceof File && resume.size > 0) {
       const validationError = validateResumeFile(resume.type, resume.size);
       if (validationError) {
         return NextResponse.json({ error: validationError }, { status: 400 });
       }
 
+      // Parse resume
       try {
         const arrayBuffer = await resume.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
@@ -115,6 +93,7 @@ export async function POST(request: Request) {
       }
     }
 
+    // Store context and return session ID
     const sessionId = randomUUID();
     const entry: SessionEntry = {
       jobRole: role.trim(),
@@ -123,7 +102,6 @@ export async function POST(request: Request) {
       interviewStyle,
       createdAt: Date.now(),
       messages: [],
-      isTrial: trialRequested,
     };
 
     sessionStore.store(sessionId, entry);
