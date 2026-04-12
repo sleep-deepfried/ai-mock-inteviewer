@@ -1,5 +1,14 @@
 import Link from "next/link";
-import { Mic, Target, LineChart, Smartphone, Play, Apple } from "lucide-react";
+import Image from "next/image";
+import {
+  Mic,
+  Target,
+  LineChart,
+  Smartphone,
+  Play,
+  Apple,
+  Handshake,
+} from "lucide-react";
 import { LandingFaq, type FaqItem } from "@/components/landing/landing-faq";
 import { LandingHeader } from "@/components/landing/landing-header";
 import { LandingHeroComposer } from "@/components/landing/landing-hero-composer";
@@ -276,6 +285,51 @@ export default function HomePage() {
         </section>
 
         <MobileAppCtaSection focusRing={focusRing} />
+
+        <section
+          className="relative z-10 px-4 py-16 sm:px-6 sm:py-20"
+          aria-labelledby="collab-heading"
+        >
+          <div className="mx-auto max-w-5xl">
+            <div className="flex flex-col items-center text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-500/15">
+                <Handshake className="h-7 w-7 text-violet-400" aria-hidden />
+              </div>
+              <h2
+                id="collab-heading"
+                className="mt-5 text-2xl font-semibold tracking-tight sm:text-3xl"
+              >
+                In collaboration with
+              </h2>
+              <p className="mt-2 max-w-xl text-sm text-zinc-400 sm:text-base">
+                Vocis is built in partnership with Tutorials Dojo, a trusted
+                resource for cloud certification and tech career preparation.
+              </p>
+              <a
+                href="https://tutorialsdojo.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`mt-8 inline-flex items-center gap-4 rounded-2xl border border-white/10 bg-white/5 px-6 py-4 transition hover:border-white/20 hover:bg-white/10 ${focusRing}`}
+              >
+                <Image
+                  src="https://td-mainsite-cdn.tutorialsdojo.com/wp-content/uploads/2022/10/TD-100x100-1.png"
+                  alt="Tutorials Dojo logo"
+                  width={48}
+                  height={48}
+                  className="h-12 w-12 rounded-lg"
+                />
+                <div className="flex flex-col items-start">
+                  <span className="text-lg font-semibold text-white">
+                    Tutorials Dojo
+                  </span>
+                  <span className="text-sm text-zinc-400">
+                    tutorialsdojo.com
+                  </span>
+                </div>
+              </a>
+            </div>
+          </div>
+        </section>
 
         <section
           className="relative z-10 px-4 py-20 sm:px-6 sm:py-28"
