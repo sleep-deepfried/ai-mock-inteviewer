@@ -29,27 +29,42 @@ const faqItems: FaqItem[] = [
   {
     question: "What is Vocis?",
     answer:
-      "Vocis is voice-first interview practice. On the web you can try about 30 seconds of real-time AI dialogue with no sign-in. For full-length sessions, history, and scored feedback, use the Vocis mobile app.",
+      "Vocis helps you practice job interviews out loud with an AI interviewer that speaks back in real time. This website offers a short, anonymous preview; the mobile apps are built for longer sessions and deeper feedback.",
+  },
+  {
+    question: "How long is the web trial?",
+    answer:
+      "About 30 seconds once you are connected—enough to feel the back-and-forth. When the timer ends, you will see where to go for full-length practice (the Vocis app). There is no scored report or results page on the web trial.",
   },
   {
     question: "Which browser works best?",
     answer:
-      "Desktop Chrome, Edge, or Arc give you the best experience. Allow microphone access when prompted—that is how the AI hears you. A stable internet connection keeps audio in sync. Other browsers may work but can be less reliable.",
+      "Use a recent desktop version of Chrome, Edge, or Arc. When the browser asks for microphone access, choose Allow; without the mic, the interviewer cannot hear you. A stable Wi‑Fi or wired connection reduces audio dropouts. Other browsers may work but are not our primary test targets.",
   },
   {
-    question: "What happens to my voice and role text?",
+    question: "What is included in the mobile app?",
     answer:
-      "The web trial sends your role text and live audio to our servers and to Google Gemini to run the session. Anonymous trial data is not used to build a long-term profile on our side; see the Privacy Policy for details. Do not share passwords, API keys, or highly confidential material.",
+      "The iOS and Android apps are meant for the full product: longer interviews, history, and scored feedback after sessions. Store links appear on this site when your team configures them (environment variables). The web stays a lightweight trial, not a replacement for the app.",
+  },
+  {
+    question: "What happens to my voice and the role I enter?",
+    answer:
+      "For the trial, the job role or description you type and your live voice audio are sent to our servers and to Google Gemini (Live API) to run the conversation. The server keeps session data in memory for a limited time, then it expires—see the Privacy Policy for retention and third parties. Never dictate passwords, API keys, or employer-confidential material.",
   },
   {
     question: "Do I need an account on the website?",
     answer:
-      "No. The browser trial is anonymous. The mobile app uses its own sign-in for full features and history.",
+      "No. The browser trial does not require sign-in. If you use the Vocis mobile app, that product may use its own account or sign-in so your history and scores can sync.",
   },
   {
-    question: "Is this free? What does Beta mean?",
+    question: "Can I upload my resume during the web trial?",
     answer:
-      "Yes, Vocis is free to try. Beta means we are still refining the product—expect updates. Your feedback helps us improve.",
+      "No. Resume upload is turned off for the anonymous web trial to keep data collection minimal. Resume-aware practice is part of the fuller experience on mobile (and authenticated flows elsewhere), not this 30-second preview.",
+  },
+  {
+    question: "Is Vocis free? What does Beta mean?",
+    answer:
+      "Yes—you can try Vocis without paying. Beta means we are still shipping improvements; you might see UI tweaks, copy updates, or behavior changes as we learn from usage. Share feedback if something feels confusing.",
   },
 ];
 
@@ -216,7 +231,8 @@ export default function HomePage() {
               Questions?
             </h2>
             <p className="mx-auto mt-3 max-w-2xl text-center text-base leading-relaxed text-zinc-400 sm:mt-4 sm:text-lg">
-              Quick answers about the web trial, browsers, privacy, and the app.
+              Web trial length, browsers, privacy, mobile vs web, and what Beta
+              means.
             </p>
             <div className="mt-12 sm:mt-14">
               <LandingFaq items={faqItems} focusRing={focusRing} />
