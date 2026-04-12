@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { LegalDraftDisclaimer } from "@/components/legal-draft-disclaimer";
 
 export const metadata: Metadata = {
   title: "Terms of Service — Vocis",
@@ -29,12 +28,11 @@ export default function TermsPage() {
           <section className="space-y-3">
             <h2 className="text-lg font-semibold text-white">Agreement</h2>
             <p>
-              By accessing or using Vocis—including the{" "}
-              <strong>website</strong>, the{" "}
-              <strong>30-second browser trial</strong>, any{" "}
+              By accessing or using Vocis—including the <strong>website</strong>
+              , the <strong>30-second browser trial</strong>, any{" "}
               <strong>signed-in web features</strong>, and{" "}
-              <strong>mobile applications</strong> we make available—you agree to
-              these Terms. If you do not agree, do not use the service.
+              <strong>mobile applications</strong> we make available—you agree
+              to these Terms. If you do not agree, do not use the service.
             </p>
           </section>
 
@@ -43,10 +41,10 @@ export default function TermsPage() {
             <p>
               Vocis provides AI-assisted interview practice using third-party AI
               (including Google Gemini). The website trial is a limited
-              demonstration. Longer sessions, on-device history, and post-session
-              scoring may be available through our mobile apps, and cloud-synced
-              history may be available when you use signed-in website features, as
-              described on the site.
+              demonstration. Longer sessions, on-device history, and
+              post-session scoring may be available through our mobile apps, and
+              cloud-synced history may be available when you use signed-in
+              website features, as described on the site.
             </p>
           </section>
 
@@ -62,8 +60,9 @@ export default function TermsPage() {
                 service beyond what is permitted by law.
               </li>
               <li>
-                Do not misuse Vocis APIs (including automated scraping, credential
-                sharing, or attempts to bypass rate limits or security controls).
+                Do not misuse Vocis APIs (including automated scraping,
+                credential sharing, or attempts to bypass rate limits or
+                security controls).
               </li>
               <li>
                 Do not submit highly sensitive secrets (passwords, API keys,
@@ -78,11 +77,12 @@ export default function TermsPage() {
             </h2>
             <p>
               Depending on the build, interview history and scores may be stored{" "}
-              <strong>only on your device</strong>. You are responsible for device
-              security, backups, and any loss of local data if you uninstall the app
-              or reset your device. Content you provide (including voice, role text,
-              job descriptions, and resume-derived text) is processed so we can
-              deliver the interview and feedback, as described in the Privacy Policy.
+              <strong>only on your device</strong>. You are responsible for
+              device security, backups, and any loss of local data if you
+              uninstall the app or reset your device. Content you provide
+              (including voice, role text, job descriptions, and resume-derived
+              text) is processed so we can deliver the interview and feedback,
+              as described in the Privacy Policy.
             </p>
           </section>
 
@@ -116,8 +116,8 @@ export default function TermsPage() {
           <section className="space-y-3">
             <h2 className="text-lg font-semibold text-white">Termination</h2>
             <p>
-              We may suspend or discontinue the website, trial, APIs, or apps, or
-              block abuse, at any time without notice.
+              We may suspend or discontinue the website, trial, APIs, or apps,
+              or block abuse, at any time without notice.
             </p>
           </section>
 
@@ -138,8 +138,6 @@ export default function TermsPage() {
             </p>
           </section>
         </div>
-
-        <LegalDraftDisclaimer />
       </div>
     </main>
   );
