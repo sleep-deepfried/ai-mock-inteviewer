@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { Suspense, useState, useRef, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { AIStateIndicator } from "@/components/ai-state-indicator";
@@ -448,6 +448,22 @@ function InterviewContent() {
   );
 }
 
+function InterviewPageFallback() {
+  return (
+    <main className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-slate-950 px-4 text-white">
+      <Loader2
+        className="h-10 w-10 animate-spin text-violet-400"
+        aria-hidden
+      />
+      <p className="text-sm text-zinc-400">Loading interview…</p>
+    </main>
+  );
+}
+
 export default function InterviewPage() {
-  return <InterviewContent />;
+  return (
+    <Suspense fallback={<InterviewPageFallback />}>
+      <InterviewContent />
+    </Suspense>
+  );
 }
