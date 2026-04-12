@@ -299,7 +299,7 @@ export default function HomePage() {
                 className={`mt-8 inline-flex items-center gap-4 rounded-2xl border border-white/10 bg-white/5 px-6 py-4 transition hover:border-white/20 hover:bg-white/10 ${focusRing}`}
               >
                 <Image
-                  src="https://td-mainsite-cdn.tutorialsdojo.com/wp-content/uploads/2022/10/TD-100x100-1.png"
+                  src="/tutorials-dojo-logo.png"
                   alt="Tutorials Dojo logo"
                   width={48}
                   height={48}
