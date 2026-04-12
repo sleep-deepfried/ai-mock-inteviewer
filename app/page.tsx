@@ -81,16 +81,16 @@ const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black";
 
 function MobileAppCtaSection({ focusRing: ring }: { focusRing: string }) {
-  const appStoreUrl = process.env.NEXT_PUBLIC_APP_STORE_URL?.trim();
-  const playStoreUrl = process.env.NEXT_PUBLIC_PLAY_STORE_URL?.trim();
+  const appStoreUrl =
+    process.env.NEXT_PUBLIC_APP_STORE_URL?.trim() || "coming-soon";
+  const playStoreUrl =
+    process.env.NEXT_PUBLIC_PLAY_STORE_URL?.trim() || "coming-soon";
 
   // Check if URLs are valid (not placeholder values like "coming-soon")
   const isValidUrl = (url: string | undefined): url is string =>
     !!url && url.startsWith("http");
   const appStoreReady = isValidUrl(appStoreUrl);
   const playStoreReady = isValidUrl(playStoreUrl);
-  const hasComingSoon =
-    (appStoreUrl && !appStoreReady) || (playStoreUrl && !playStoreReady);
 
   return (
     <section className="relative z-10 px-4 py-12 sm:px-6 sm:py-16">
@@ -186,19 +186,6 @@ function MobileAppCtaSection({ focusRing: ring }: { focusRing: string }) {
                     </span>
                   </div>
                 </span>
-              ) : null}
-              {!appStoreUrl && !playStoreUrl ? (
-                <p className="text-center text-xs text-zinc-500 sm:text-left">
-                  Set{" "}
-                  <code className="text-zinc-400">
-                    NEXT_PUBLIC_APP_STORE_URL
-                  </code>{" "}
-                  and{" "}
-                  <code className="text-zinc-400">
-                    NEXT_PUBLIC_PLAY_STORE_URL
-                  </code>{" "}
-                  to show download buttons.
-                </p>
               ) : null}
             </div>
           </div>

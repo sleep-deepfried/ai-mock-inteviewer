@@ -10,8 +10,10 @@ interface LandingHeaderProps {
 }
 
 export function LandingHeader({ showBeta, focusRing }: LandingHeaderProps) {
-  const appStoreUrl = process.env.NEXT_PUBLIC_APP_STORE_URL?.trim();
-  const playStoreUrl = process.env.NEXT_PUBLIC_PLAY_STORE_URL?.trim();
+  const appStoreUrl =
+    process.env.NEXT_PUBLIC_APP_STORE_URL?.trim() || "coming-soon";
+  const playStoreUrl =
+    process.env.NEXT_PUBLIC_PLAY_STORE_URL?.trim() || "coming-soon";
 
   // Check if URLs are valid (not placeholder values like "coming-soon")
   const isValidUrl = (url: string | undefined): url is string =>
