@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth";
 
-export async function GET() {
+export async function GET(request: Request) {
   const user = await getAuthUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -11,8 +11,8 @@ export async function GET() {
     return NextResponse.json({ sessions: [], stats: { total: 0, topRole: null, totalPracticeMinutes: 0, lastInterviewDate: null } });
   }
 
-  const { createClient } = await import("@/lib/supabase/server");
-  const supabase = await createClient();
+  const { createSupabaseForRouteHandler } = await import("@/lib/supabase/route-handler");
+  const supabase = await createSupabaseForRouteHandler(request);
 
   // Get user row from users table
   const { data: dbUser, error: userError } = await supabase

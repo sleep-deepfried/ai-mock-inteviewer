@@ -131,8 +131,10 @@ export async function POST(request: Request) {
     // Persist session + scorecard to Supabase (best-effort, don't block response)
     if (process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH !== "true") {
       try {
-        const { createClient: createServerSupabase } = await import("@/lib/supabase/server");
-        const supabase = await createServerSupabase();
+        const { createSupabaseForRouteHandler } = await import(
+          "@/lib/supabase/route-handler"
+        );
+        const supabase = await createSupabaseForRouteHandler(request);
 
         // Upsert user
         const { data: dbUser } = await supabase

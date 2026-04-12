@@ -2,6 +2,24 @@ const MIME_PDF = "application/pdf";
 const MIME_DOCX =
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
+type GlobalWithDOMMatrix = typeof globalThis & {
+  DOMMatrix?: new (...args: unknown[]) => unknown;
+};
+
+/**
+ * pdfjs (used by pdf-parse) expects browser globals. Next.js route handlers run in Node,
+ * where `DOMMatrix` is often missing; pdf-parse's worker polyfills it via @napi-rs/canvas,
+ * but the main bundle can execute before that. Install the polyfill first.
+ */
+async function ensureDomMatrixForPdfJs(): Promise<void> {
+  const g = globalThis as GlobalWithDOMMatrix;
+  if (typeof g.DOMMatrix === "function") {
+    return;
+  }
+  const { DOMMatrix } = await import("@napi-rs/canvas");
+  g.DOMMatrix = DOMMatrix as GlobalWithDOMMatrix["DOMMatrix"];
+}
+
 /**
  * Extract plain text from a PDF or DOCX resume buffer.
  * Throws a descriptive Error for unsupported types, corrupt files, or empty text.
@@ -33,6 +51,7 @@ export async function parseResume(
 
 async function parsePdf(buffer: Buffer): Promise<string> {
   try {
+    await ensureDomMatrixForPdfJs();
     const { PDFParse } = await import("pdf-parse");
     const pdf = new PDFParse({ data: new Uint8Array(buffer) });
     const result = await pdf.getText();

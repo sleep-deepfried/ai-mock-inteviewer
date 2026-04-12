@@ -15,6 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://vocis.tutorialsdojo.com"),
   title: "Vocis — AI Interview Coach",
   description:
     "Practice real voice interviews with AI. Get tailored questions for your role and resume, then receive scored feedback with strengths and areas to improve.",
