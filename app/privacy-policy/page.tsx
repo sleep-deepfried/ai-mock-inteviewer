@@ -5,7 +5,7 @@ import { LegalDraftDisclaimer } from "@/components/legal-draft-disclaimer";
 export const metadata: Metadata = {
   title: "Privacy Policy — Vocis",
   description:
-    "How Vocis handles data for the web trial and related services.",
+    "How Vocis handles data for the web trial, signed-in web use, and mobile apps.",
 };
 
 export default function PrivacyPolicyPage() {
@@ -28,11 +28,13 @@ export default function PrivacyPolicyPage() {
             <h2 className="text-lg font-semibold text-white">Overview</h2>
             <p>
               Vocis (&quot;we,&quot; &quot;us&quot;) provides voice-based interview
-              practice. This policy describes how we handle information when you
-              use the <strong>public website trial</strong> (approximately 30
-              seconds of voice interaction in the browser, without creating an
-              account through the site) and how that compares to account-based use
-              elsewhere (e.g. our mobile apps), where applicable.
+              practice. This policy covers the <strong>anonymous website trial</strong>
+              (a short browser preview without signing in on the site),{" "}
+              <strong>signed-in use of the Vocis website</strong> (where we offer
+              accounts and save history in our database), and{" "}
+              <strong>mobile apps</strong> (including the local-first iOS
+              experience described below). Product-specific details may also appear
+              in-app.
             </p>
           </section>
 
@@ -49,8 +51,8 @@ export default function PrivacyPolicyPage() {
               </li>
               <li>
                 <strong>Voice audio</strong> is processed in real time for the
-                interview; we do not use the web trial to build a long-term
-                marketing profile from your voice on the server for that flow.
+                interview. We do not use the web trial to build a long-term
+                advertising profile from your voice for that flow.
               </li>
               <li>
                 Session context is held in <strong>server memory</strong> for a
@@ -67,25 +69,67 @@ export default function PrivacyPolicyPage() {
 
           <section className="space-y-3">
             <h2 className="text-lg font-semibold text-white">
-              Mobile app and accounts
+              Signed-in website (account)
             </h2>
             <p>
-              If you use the Vocis mobile application or other signed-in
-              experiences, additional data (such as account identifiers, session
-              history, or scorecards) may be stored according to that
-              product&apos;s flows and your authentication provider (e.g. Supabase).
-              This page focuses on the web trial; in-app notices or a separate
-              in-product policy may apply there.
+              Where the Vocis website supports sign-in, we may store{" "}
+              <strong>account identifiers</strong>,{" "}
+              <strong>session history</strong>, and <strong>scorecards</strong> in our
+              systems (for example via{" "}
+              <strong>Supabase</strong>) so you can return to past interviews. That
+              processing is tied to your authenticated session. See your account
+              settings and cookie notices on the site for related controls.
             </p>
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-lg font-semibold text-white">
+              Mobile app (e.g. iOS)
+            </h2>
+            <ul className="list-disc space-y-2 pl-5">
+              <li>
+                <strong>History and scores on your device:</strong> In the current
+                Vocis mobile app, completed interview summaries and scores are
+                stored <strong>on the device</strong> (for example using Apple&apos;s
+                on-device database features). They are not uploaded to Vocis for
+                long-term cloud storage in that configuration. If you delete the app
+                or erase the device without a backup, that local data may be lost.
+              </li>
+              <li>
+                <strong>What still goes to our servers:</strong> To run voice
+                interviews and generate feedback, the app contacts Vocis APIs. We
+                process <strong>session identifiers</strong>,{" "}
+                <strong>job role</strong>, optional <strong>job description</strong>,
+                optional <strong>resume text</strong> (extracted from files on the
+                device before upload), <strong>transcripts</strong>, and{" "}
+                <strong>session metadata</strong> (such as duration) as needed to
+                configure the AI and produce scores. Voice audio is handled in real
+                time through our infrastructure and <strong>Google Gemini</strong>{" "}
+                services.
+              </li>
+              <li>
+                <strong>Abuse prevention:</strong> The app may send a{" "}
+                <strong>stable device identifier</strong> and use app-embedded
+                credentials so our servers can apply rate limits and protect the
+                service. These values are not used to sell personal data.
+              </li>
+              <li>
+                <strong>No website account required:</strong> The mobile build
+                aligned with this policy does not require you to create a Vocis
+                website account to practice; your progress stays on-device unless we
+                ship a future signed-in or sync feature and tell you otherwise.
+              </li>
+            </ul>
           </section>
 
           <section className="space-y-3">
             <h2 className="text-lg font-semibold text-white">Third parties</h2>
             <p>
-              We use <strong>Google</strong> (Gemini / AI services) to power
-              interview dialogue and related features. Google&apos;s terms and
-              privacy policy also apply to their processing. We use industry
-              standard transport (HTTPS) between your browser and our API.
+              We use <strong>Google</strong> (Gemini and related AI services) to
+              power interview dialogue, live voice sessions, and scored feedback.
+              Google&apos;s terms and privacy policy also apply to their processing.
+              We use industry-standard transport (HTTPS/TLS) between your browser
+              or app and our APIs.
             </p>
           </section>
 

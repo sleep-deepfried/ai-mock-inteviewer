@@ -21,7 +21,7 @@ const bento = [
     icon: LineChart,
     title: "Full prep on mobile",
     description:
-      "Longer sessions, history, and scored feedback live in the Vocis iOS and Android apps—download when you are ready to go deeper.",
+      "Longer sessions, on-device history, and scored feedback in the Vocis mobile app—download when you are ready to go deeper.",
   },
 ];
 
@@ -44,22 +44,22 @@ const faqItems: FaqItem[] = [
   {
     question: "What is included in the mobile app?",
     answer:
-      "The iOS and Android apps are meant for the full product: longer interviews, history, and scored feedback after sessions. Store links appear on this site when your team configures them (environment variables). The web stays a lightweight trial, not a replacement for the app.",
+      "The Vocis mobile app is built for full-length interviews, on-device history (so your past sessions stay on your phone unless we add cloud sync later), and scored feedback after each run. Store links appear on this site when they are configured. The web stays a lightweight trial, not a replacement for the app.",
   },
   {
     question: "What happens to my voice and the role I enter?",
     answer:
-      "For the trial, the job role or description you type and your live voice audio are sent to our servers and to Google Gemini (Live API) to run the conversation. The server keeps session data in memory for a limited time, then it expires—see the Privacy Policy for retention and third parties. Never dictate passwords, API keys, or employer-confidential material.",
+      "On the web trial, the job role or description you type and your live voice audio are sent to our servers and to Google Gemini (Live API) to run the conversation. The server keeps session data in memory for a limited time, then it expires. On mobile, voice and session data are processed the same way for the live interview and scoring, while your completed history and scores are stored on the device—see the Privacy Policy. Never dictate passwords, API keys, or employer-confidential material.",
   },
   {
     question: "Do I need an account on the website?",
     answer:
-      "No. The browser trial does not require sign-in. If you use the Vocis mobile app, that product may use its own account or sign-in so your history and scores can sync.",
+      "No for the browser trial—it stays anonymous. If the full Vocis website offers sign-in, that is optional and used for cloud-saved history there. The current Vocis mobile app is set up so you can practice without a website account; your interview history stays on your phone.",
   },
   {
     question: "Can I upload my resume during the web trial?",
     answer:
-      "No. Resume upload is turned off for the anonymous web trial to keep data collection minimal. Resume-aware practice is part of the fuller experience on mobile (and authenticated flows elsewhere), not this 30-second preview.",
+      "No. Resume upload is turned off for the anonymous web trial to keep data collection minimal. On mobile you can attach a resume: text is extracted on your device, then the app sends what is needed to configure the interview and scoring—see the Privacy Policy for details.",
   },
   {
     question: "Is Vocis free? What does Beta mean?",

@@ -1,0 +1,150 @@
+import { GoogleGenAI } from "@google/genai";
+
+export interface TranscriptEntryInput {
+  role: "user" | "ai";
+  text: string;
+}
+
+export interface ScoreInterviewInput {
+  transcript: TranscriptEntryInput[];
+  jobRole: string;
+  duration: number;
+  transcriptWasEmpty?: boolean;
+}
+
+const RESULTS_JSON_SCHEMA = `Respond ONLY with valid JSON in this exact format:
+{
+  "overallScore": number,
+  "categories": [
+    { "name": "Communication Skills", "score": number, "feedback": "string" },
+    { "name": "Technical Knowledge", "score": number, "feedback": "string" },
+    { "name": "Problem Solving", "score": number, "feedback": "string" },
+    { "name": "Confidence & Delivery", "score": number, "feedback": "string" },
+    { "name": "Relevance", "score": number, "feedback": "string" }
+  ],
+  "strengths": ["string", "string", "string"],
+  "improvements": ["string", "string", "string"],
+  "summary": "string"
+}`;
+
+function buildScoringPrompt(
+  jobRole: string,
+  durationMinutes: number,
+  conversationText: string,
+): string {
+  return `You are an expert interview coach. Analyze this mock interview transcript for a "${jobRole}" position that lasted ${durationMinutes} minutes.
+
+Score the candidate on these categories (0-100 each) and provide specific, actionable feedback:
+
+1. Communication Skills - Clarity, articulation, conciseness
+2. Technical Knowledge - Depth and accuracy of technical answers
+3. Problem Solving - Approach to questions, structured thinking
+4. Confidence & Delivery - Composure, enthusiasm, professionalism
+5. Relevance - How well answers relate to the role
+
+Also provide:
+- An overall score (0-100, weighted average)
+- 3 key strengths
+- 3 areas for improvement
+- A brief overall summary (2-3 sentences)
+
+${RESULTS_JSON_SCHEMA}
+
+Transcript:
+${conversationText}`;
+}
+
+function buildNoTranscriptCoachPrompt(
+  jobRole: string,
+  durationMinutes: number,
+): string {
+  return `You are a warm, plain-spoken interview coach. Someone just finished a practice session for a "${jobRole}" role (about ${durationMinutes} minutes on the timer), but **we did not capture what they said**—usually mic permission, browser, Wi‑Fi, or leaving before the conversation really started.
+
+They will read this on a "limited feedback" screen. There is **nothing to grade**. Your job is encouragement and practical next steps only.
+
+**Tone and wording (critical):**
+- Write to **you** like a supportive peer. Short sentences. Zero shame.
+- Do **not** use stiff phrases such as: "substantive scoring," "absence of dialogue," "cannot evaluate," "insufficient data," "complete absence," "actionable feedback" as jargon, or "no evidence."
+- Do **not** blame "technology," "glitches," "bugs," or "the system." Stay human: we simply did not hear them this round; it happens; the next session can go differently.
+- Do **not** pretend you heard their answers. Do not invent strengths about how they answered questions.
+
+**JSON output rules:**
+- Set \`overallScore\` to **0** and every category \`score\` to **0** (placeholders only).
+- Each category \`feedback\`: one friendly sentence—e.g. a tip for next time so we can hear them—not a fake score.
+- \`strengths\`: exactly **3** bullets. Honest positives: e.g. they showed up to practice, they care about the role, they can try again—**not** praise for answers we never heard.
+- \`improvements\`: exactly **3** bullets. Concrete habits: allow microphone, wait until you hear the interviewer, use a stable connection, speak in full sentences out loud.
+- \`summary\`: **2–3 sentences**. Warm and normal—e.g. it is common not to be heard on a first try, you are welcome back anytime, the bullets below will make the next run easier. No "glitch" or "tech" talk.
+
+${RESULTS_JSON_SCHEMA}`;
+}
+
+export type ScoreInterviewResult =
+  | { ok: true; feedback: Record<string, unknown>; transcriptWasEmpty: boolean }
+  | { ok: false; status: number; error: string; detail?: string };
+
+/**
+ * Runs Gemini scoring and parses JSON from the model response (shared by web + mobile relay).
+ */
+export async function scoreInterview(
+  input: ScoreInterviewInput,
+): Promise<ScoreInterviewResult> {
+  const { transcript, jobRole, duration, transcriptWasEmpty } = input;
+
+  if (!transcript || !Array.isArray(transcript) || transcript.length === 0) {
+    return { ok: false, status: 400, error: "Transcript is required" };
+  }
+
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    console.error("[score] GEMINI_API_KEY is not set");
+    return {
+      ok: false,
+      status: 500,
+      error: "Server configuration error",
+    };
+  }
+
+  const durationMinutes = Math.max(0, Math.round(duration / 60));
+  const conversationText = transcript
+    .map((t) => `${t.role === "user" ? "Candidate" : "Interviewer"}: ${t.text}`)
+    .join("\n");
+
+  const prompt =
+    transcriptWasEmpty === true
+      ? buildNoTranscriptCoachPrompt(jobRole, durationMinutes)
+      : buildScoringPrompt(jobRole, durationMinutes, conversationText);
+
+  try {
+    const genai = new GoogleGenAI({ apiKey });
+    const response = await genai.models.generateContent({
+      model: "gemini-2.5-flash-lite",
+      contents: prompt,
+    });
+
+    const text = response.text ?? "";
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      return {
+        ok: false,
+        status: 500,
+        error: "Failed to parse AI feedback",
+      };
+    }
+
+    const feedback = JSON.parse(jsonMatch[0]) as Record<string, unknown>;
+    return {
+      ok: true,
+      feedback,
+      transcriptWasEmpty: Boolean(transcriptWasEmpty),
+    };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[score] generation failed:", message);
+    return {
+      ok: false,
+      status: 500,
+      error: "Failed to generate results",
+      detail: message,
+    };
+  }
+}
