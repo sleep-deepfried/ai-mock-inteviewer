@@ -16,10 +16,14 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://vocis.tutorialsdojo.com"),
-  title: "Vocis — AI Interview Coach",
+  title: "Vocis — 30-second voice trial",
   description:
-    "Practice real voice interviews with AI. Get tailored questions for your role and resume, then receive scored feedback with strengths and areas to improve.",
+    "Try a 30-second anonymous voice interview preview in your browser. Full sessions, history, and scored feedback are in the Vocis iOS and Android apps.",
   applicationName: "Vocis",
+  icons: {
+    icon: [{ url: "/vocis-logo.png", type: "image/png" }],
+    apple: [{ url: "/vocis-logo.png", type: "image/png" }],
+  },
   keywords: [
     "interview prep",
     "mock interview",
@@ -30,10 +34,11 @@ export const metadata: Metadata = {
     "job interview practice",
   ],
   openGraph: {
-    title: "Vocis — AI Interview Coach",
+    title: "Vocis — 30-second voice trial",
     description:
-      "Practice real voice interviews with AI. Tailored questions, scored feedback, and actionable improvements.",
+      "Quick browser preview; full interview coaching on iOS and Android.",
     type: "website",
+    images: [{ url: "/vocis-logo.png" }],
   },
 };
 

@@ -30,6 +30,10 @@ Set:
 
 - `GEMINI_API_KEY` — Google AI Studio / Gemini API key (Live tokens, Live session, and post-interview scoring).
 - `NEXT_PUBLIC_APP_STAGE=beta` — optional; shows a **Beta** pill on the **landing** header and in the **interview** header for testers.
+- `NEXT_PUBLIC_APP_STORE_URL` — optional; **App Store** link on the landing **mobile** section, end-of-trial panel, and header (when set).
+- `NEXT_PUBLIC_PLAY_STORE_URL` — optional; **Google Play** link (same surfaces as above).
+
+**Web trial:** `POST /api/interview/setup` with `trial=true` creates an anonymous session (no Supabase cookie required). Resume upload is rejected for that flow. **Rate limiting:** in-memory limit of **20** trial setups per client **IP per hour** (see `lib/trial-setup-rate-limit.ts`); returns **429** when exceeded. No Redis/Upstash env vars required for the default implementation.
 
 Optional **ElevenLabs** (`ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID`) — only if you still call `POST /api/interview/tts` from custom code; the default interview hook does not use it.
 

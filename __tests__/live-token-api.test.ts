@@ -45,7 +45,7 @@ function buildJsonRequest(body: unknown): Request {
   } as unknown as Request;
 }
 
-function makeEntry() {
+function makeEntry(isTrial = false) {
   return {
     jobRole: "Software Engineer",
     jobDescription: "Build",
@@ -53,6 +53,7 @@ function makeEntry() {
     interviewStyle: "technical" as const,
     createdAt: Date.now(),
     messages: [] as { role: "user" | "model"; text: string }[],
+    isTrial,
   };
 }
 
@@ -75,7 +76,7 @@ describe("POST /api/interview/live-token", () => {
   });
 
   it("returns token and model when session exists", async () => {
-    mockSessionGet.mockReturnValue(makeEntry());
+    mockSessionGet.mockReturnValue(makeEntry(false));
     const res = await POST(
       buildJsonRequest({ sessionId: "sid-1" }),
     );
@@ -86,10 +87,20 @@ describe("POST /api/interview/live-token", () => {
     expect(mockAuthTokensCreate).toHaveBeenCalled();
   });
 
-  it("returns 401 when unauthenticated", async () => {
+  it("returns 401 when unauthenticated and session is not trial", async () => {
     mockGetAuthUser.mockResolvedValue(null);
+    mockSessionGet.mockReturnValue(makeEntry(false));
     const res = await POST(buildJsonRequest({ sessionId: "sid-1" }));
     expect(res.status).toBe(401);
+  });
+
+  it("returns 200 when unauthenticated for trial session", async () => {
+    mockGetAuthUser.mockResolvedValue(null);
+    mockSessionGet.mockReturnValue(makeEntry(true));
+    const res = await POST(buildJsonRequest({ sessionId: "sid-trial" }));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.token).toBe("auth_tokens/test-token-123");
   });
 
   it("returns 404 when session missing", async () => {
@@ -104,10 +115,14 @@ describe("POST /api/interview/live-token", () => {
       buildJsonRequest({ sessionId: "new-sid", role: "Frontend Engineer", style: "behavioral" }),
     );
     expect(res.status).toBe(200);
-    expect(mockSessionStore).toHaveBeenCalledWith("new-sid", expect.objectContaining({
-      jobRole: "Frontend Engineer",
-      interviewStyle: "behavioral",
-    }));
+    expect(mockSessionStore).toHaveBeenCalledWith(
+      "new-sid",
+      expect.objectContaining({
+        jobRole: "Frontend Engineer",
+        interviewStyle: "behavioral",
+        isTrial: false,
+      }),
+    );
     const body = await res.json();
     expect(body.token).toBe("auth_tokens/test-token-123");
   });

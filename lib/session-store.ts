@@ -16,6 +16,8 @@ export interface SessionEntry {
   createdAt: number; // Date.now()
   /** Interview turns; appended by POST /api/interview/chat. */
   messages: ChatTurn[];
+  /** Anonymous web trial session (no account); relaxed auth on live-token / end. */
+  isTrial: boolean;
 }
 
 const TTL_MS = 30 * 60 * 1000; // 30 minutes

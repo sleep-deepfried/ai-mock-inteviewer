@@ -3,11 +3,6 @@ import { getAuthUser } from "@/lib/auth";
 import { sessionStore } from "@/lib/session-store";
 
 export async function POST(request: Request) {
-  const user = await getAuthUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   let body: { sessionId?: string };
   try {
     body = await request.json();
@@ -18,6 +13,17 @@ export async function POST(request: Request) {
   const { sessionId } = body;
   if (!sessionId || typeof sessionId !== "string") {
     return NextResponse.json({ error: "Session ID is required" }, { status: 400 });
+  }
+
+  const entry = sessionStore.get(sessionId);
+  const user = await getAuthUser();
+
+  if (entry && !entry.isTrial && !user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!entry) {
+    return NextResponse.json({ ok: true });
   }
 
   sessionStore.delete(sessionId);

@@ -4,9 +4,13 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const mockPush = vi.fn();
 const mockReplace = vi.fn();
 
+const searchParamsState = vi.hoisted(() => ({
+  value: "sessionId=test-session",
+}));
+
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush, replace: mockReplace }),
-  useSearchParams: () => new URLSearchParams("sessionId=test-session"),
+  useSearchParams: () => new URLSearchParams(searchParamsState.value),
 }));
 
 vi.mock("next/link", () => ({
@@ -61,6 +65,7 @@ import { useInterview } from "@/hooks/use-interview";
 describe("Interview Page", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    searchParamsState.value = "sessionId=test-session";
     (useInterview as ReturnType<typeof vi.fn>).mockReturnValue({
       ...defaultInterviewState,
     });
@@ -186,5 +191,39 @@ describe("Interview Page", () => {
     expect(parsed.transcriptWasEmpty).toBe(true);
     expect(parsed.review?.rating).toBe(5);
     setItemSpy.mockRestore();
+  });
+
+  describe("trial mode", () => {
+    beforeEach(() => {
+      searchParamsState.value = "sessionId=test-session&trial=1";
+      (useInterview as ReturnType<typeof vi.fn>).mockReturnValue({
+        ...defaultInterviewState,
+        timeRemaining: 30,
+      });
+    });
+
+    it("renders 30-second countdown for trial", () => {
+      render(<InterviewPage />);
+      expect(screen.getByText("00:30")).toBeInTheDocument();
+    });
+
+    it("shows trial ended panel instead of review modal when session ends", async () => {
+      (useInterview as ReturnType<typeof vi.fn>).mockReturnValue({
+        ...defaultInterviewState,
+        timeRemaining: 0,
+        status: "ended",
+        endReason: "Session time limit reached",
+        transcript: [],
+      });
+      render(<InterviewPage />);
+      await waitFor(() => {
+        expect(
+          screen.getByRole("dialog", { name: /trial complete/i }),
+        ).toBeInTheDocument();
+      });
+      expect(
+        screen.queryByRole("dialog", { name: /how was your interview/i }),
+      ).not.toBeInTheDocument();
+    });
   });
 });

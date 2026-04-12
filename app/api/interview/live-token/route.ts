@@ -11,12 +11,12 @@ import { GEMINI_LIVE_MODEL } from "@/lib/gemini-live-model";
 import { interviewLiveTools } from "@/lib/interview-live-tools";
 
 export async function POST(request: Request) {
-  const user = await getAuthUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  let body: { sessionId?: string; role?: string; style?: string };
+  let body: {
+    sessionId?: string;
+    role?: string;
+    style?: string;
+    trial?: boolean;
+  };
   try {
     body = await request.json();
   } catch {
@@ -28,15 +28,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Session ID is required" }, { status: 400 });
   }
 
+  const user = await getAuthUser();
+  const bodyTrial = body.trial === true;
+
   let entry = sessionStore.get(sessionId);
-  
-  // If session not found but we have role info, recreate it (handles server restarts)
+
   if (!entry && body.role && typeof body.role === "string") {
-    const interviewStyle: InterviewStyle = 
-      body.style === "behavioral" || body.style === "technical" 
-        ? body.style 
+    const interviewStyle: InterviewStyle =
+      body.style === "behavioral" || body.style === "technical"
+        ? body.style
         : "technical";
-    
+
     entry = {
       jobRole: body.role,
       jobDescription: "",
@@ -44,15 +46,21 @@ export async function POST(request: Request) {
       interviewStyle,
       createdAt: Date.now(),
       messages: [],
+      isTrial: bodyTrial,
     };
     sessionStore.store(sessionId, entry);
   }
-  
+
   if (!entry) {
     return NextResponse.json(
       { error: "Session not found or expired" },
       { status: 404 },
     );
+  }
+
+  const allowed = entry.isTrial || user != null;
+  if (!allowed) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const apiKey = process.env.GEMINI_API_KEY;
@@ -88,7 +96,7 @@ export async function POST(request: Request) {
             speechConfig: {
               voiceConfig: {
                 prebuiltVoiceConfig: {
-                  voiceName: "Zephyr", // Bright female voice for interviewer persona
+                  voiceName: "Zephyr",
                 },
               },
             },

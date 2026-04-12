@@ -6,8 +6,10 @@ const sessionEntryArb = fc.record({
   jobRole: fc.string({ minLength: 1 }),
   jobDescription: fc.string(),
   resumeText: fc.string(),
+  interviewStyle: fc.constantFrom("behavioral", "technical"),
   createdAt: fc.constant(Date.now()),
   messages: fc.constant([] as { role: "user" | "model"; text: string }[]),
+  isTrial: fc.boolean(),
 });
 
 const sessionIdArb = fc.uuid();
@@ -33,6 +35,8 @@ describe("SessionStore property tests", () => {
         expect(retrieved!.resumeText).toBe(entry.resumeText);
         expect(retrieved!.createdAt).toBe(entry.createdAt);
         expect(retrieved!.messages).toEqual(entry.messages);
+        expect(retrieved!.interviewStyle).toBe(entry.interviewStyle);
+        expect(retrieved!.isTrial).toBe(entry.isTrial);
       }),
       { numRuns: 100 }
     );
@@ -90,8 +94,10 @@ describe("SessionStore property tests", () => {
               jobRole: "expired",
               jobDescription: "",
               resumeText: "",
+              interviewStyle: "technical",
               createdAt: Date.now(),
               messages: [],
+              isTrial: false,
             });
           }
 

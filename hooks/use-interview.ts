@@ -34,8 +34,7 @@ export interface UseInterviewReturn {
   transcript: TranscriptEntry[];
 }
 
-const SESSION_DURATION = 15 * 60;
-const SESSION_TIMEOUT_MS = 15 * 60 * 1000;
+const DEFAULT_DURATION_SECONDS = 15 * 60;
 
 const BOOTSTRAP_USER_TEXT =
   "Please begin the interview by introducing yourself and asking your first question.";
@@ -61,10 +60,25 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   return btoa(binary);
 }
 
-export function useInterview(sessionId: string | null, role?: string, style?: string): UseInterviewReturn {
+export type UseInterviewOptions = {
+  /** Session length in seconds (default 15 minutes). Web trial uses 30. */
+  durationSeconds?: number;
+  /** Anonymous web trial — forwarded to live-token for auth bypass. */
+  trial?: boolean;
+};
+
+export function useInterview(
+  sessionId: string | null,
+  role?: string,
+  style?: string,
+  options?: UseInterviewOptions,
+): UseInterviewReturn {
+  const durationSeconds = options?.durationSeconds ?? DEFAULT_DURATION_SECONDS;
+  const trial = options?.trial ?? false;
+
   const [status, setStatus] = useState<InterviewStatus>("idle");
   const [aiState, setAiState] = useState<AIState>("idle");
-  const [timeRemaining, setTimeRemaining] = useState(SESSION_DURATION);
+  const [timeRemaining, setTimeRemaining] = useState(durationSeconds);
   const [error, setError] = useState<string | null>(null);
   const [endReason, setEndReason] = useState<string | null>(null);
   const [isMicOn, setIsMicOn] = useState(false);
@@ -93,10 +107,15 @@ export function useInterview(sessionId: string | null, role?: string, style?: st
   }, [sessionId]);
 
   useEffect(() => {
+    setTimeRemaining(durationSeconds);
+  }, [sessionId, durationSeconds]);
+
+  useEffect(() => {
     if (!sessionId) return;
 
     let cancelled = false;
     const abortController = new AbortController();
+    const sessionTimeoutMs = durationSeconds * 1000;
 
     const clearSessionTimeout = () => {
       if (sessionTimeoutRef.current) {
@@ -265,12 +284,18 @@ export function useInterview(sessionId: string | null, role?: string, style?: st
       setError(null);
       inputTxDraftRef.current = "";
       outputTxDraftRef.current = "";
+      setTimeRemaining(durationSeconds);
 
       try {
         const tokenRes = await fetch("/api/interview/live-token", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sessionId, role, style }),
+          body: JSON.stringify({
+            sessionId,
+            role,
+            style,
+            ...(trial ? { trial: true } : {}),
+          }),
           signal: abortController.signal,
         });
         if (!tokenRes.ok) {
@@ -327,7 +352,7 @@ export function useInterview(sessionId: string | null, role?: string, style?: st
 
         sessionTimeoutRef.current = setTimeout(() => {
           endInterviewLocal("Session time limit reached");
-        }, SESSION_TIMEOUT_MS);
+        }, sessionTimeoutMs);
 
         timerRef.current = setInterval(() => {
           setTimeRemaining((prev) => {
@@ -355,7 +380,7 @@ export function useInterview(sessionId: string | null, role?: string, style?: st
       abortController.abort();
       cleanupCore();
     };
-  }, [sessionId]);
+  }, [sessionId, durationSeconds, trial, role, style]);
 
   useEffect(() => {
     if (!isMicOn || status !== "active" || !sessionId) {

@@ -3,12 +3,12 @@
 import { useState, useRef, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ProtectedRoute } from "@/components/protected-route";
 import { AIStateIndicator } from "@/components/ai-state-indicator";
 import {
   InterviewReviewModal,
   type InterviewReviewPayload,
 } from "@/components/interview-review-modal";
+import { TrialEndedPanel } from "@/components/trial-ended-panel";
 import { useInterview } from "@/hooks/use-interview";
 import { ensureTranscriptForResults } from "@/lib/interview-transcript";
 import {
@@ -32,12 +32,19 @@ function formatTime(seconds: number): string {
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950";
 
+const FULL_SESSION_SECONDS = 15 * 60;
+const TRIAL_SESSION_SECONDS = 30;
+
 function InterviewContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const sessionId = searchParams.get("sessionId");
   const jobRole = searchParams.get("role") || "Interview";
   const interviewStyle = searchParams.get("style") || "technical";
+  const isTrial = searchParams.get("trial") === "1";
+  const sessionDurationSeconds = isTrial
+    ? TRIAL_SESSION_SECONDS
+    : FULL_SESSION_SECONDS;
 
   const {
     status,
@@ -51,7 +58,10 @@ function InterviewContent() {
     endSession,
     dismissError,
     transcript,
-  } = useInterview(sessionId, jobRole, interviewStyle);
+  } = useInterview(sessionId, jobRole, interviewStyle, {
+    durationSeconds: sessionDurationSeconds,
+    trial: isTrial,
+  });
 
   const [isCameraOn, setIsCameraOn] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -64,7 +74,7 @@ function InterviewContent() {
     process.env.NEXT_PUBLIC_APP_STAGE.toLowerCase() === "beta";
 
   useEffect(() => {
-    if (status !== "ended") return;
+    if (isTrial || status !== "ended") return;
     let cancelled = false;
     const id = window.requestAnimationFrame(() => {
       if (!cancelled) setShowReviewModal(true);
@@ -73,13 +83,13 @@ function InterviewContent() {
       cancelled = true;
       window.cancelAnimationFrame(id);
     };
-  }, [status]);
+  }, [status, isTrial]);
 
   function goToResults(review: InterviewReviewPayload) {
-    if (hasRedirected.current) return;
+    if (isTrial || hasRedirected.current) return;
     hasRedirected.current = true;
     setShowReviewModal(false);
-    const duration = 15 * 60 - timeRemaining;
+    const duration = sessionDurationSeconds - timeRemaining;
     const hadTranscript = transcript.length > 0;
     const transcriptForApi = ensureTranscriptForResults(transcript);
     sessionStorage.setItem(
@@ -121,8 +131,12 @@ function InterviewContent() {
       });
   }, [isCameraOn]);
 
-  const urgentTime = status === "active" && timeRemaining <= 120;
-  const criticalTime = status === "active" && timeRemaining <= 60;
+  const urgentTime =
+    status === "active" &&
+    timeRemaining <= (isTrial ? 10 : 120);
+  const criticalTime =
+    status === "active" &&
+    timeRemaining <= (isTrial ? 5 : 60);
 
   if (!sessionId) {
     return (
@@ -138,8 +152,8 @@ function InterviewContent() {
             No active session
           </h1>
           <p className="mt-2 text-sm text-gray-400">
-            Start from the home page with your target role (and optional resume)
-            so we can open a tailored session.
+            Start from the home page with your target role to try a 30-second
+            voice preview (no sign-in).
           </p>
           <div className="mt-8 flex flex-col gap-2 sm:flex-row sm:justify-center">
             <Link
@@ -413,27 +427,27 @@ function InterviewContent() {
         </div>
       </nav>
 
-      {status === "ended" && (
+      {status === "ended" && !isTrial && (
         <div
           className="absolute inset-0 z-30 bg-slate-950/80 backdrop-blur-sm"
           aria-hidden
         />
       )}
 
-      <InterviewReviewModal
-        open={showReviewModal}
-        endReason={endReason}
-        transcriptEmpty={transcript.length === 0}
-        onContinue={(payload) => goToResults(payload)}
-      />
+      {status === "ended" && isTrial ? (
+        <TrialEndedPanel endReason={endReason} />
+      ) : (
+        <InterviewReviewModal
+          open={showReviewModal}
+          endReason={endReason}
+          transcriptEmpty={transcript.length === 0}
+          onContinue={(payload) => goToResults(payload)}
+        />
+      )}
     </main>
   );
 }
 
 export default function InterviewPage() {
-  return (
-    <ProtectedRoute>
-      <InterviewContent />
-    </ProtectedRoute>
-  );
+  return <InterviewContent />;
 }

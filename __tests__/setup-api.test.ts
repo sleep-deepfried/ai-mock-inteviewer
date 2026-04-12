@@ -19,6 +19,11 @@ vi.mock("@/lib/session-store", () => {
   };
 });
 
+vi.mock("@/lib/trial-setup-rate-limit", () => ({
+  getClientIp: () => "127.0.0.1",
+  checkTrialSetupRateLimit: () => null as string | null,
+}));
+
 import { POST } from "@/app/api/interview/setup/route";
 import { getAuthUser } from "@/lib/auth";
 import { parseResume } from "@/lib/resume-parser";
@@ -184,5 +189,36 @@ describe("POST /api/interview/setup", () => {
     expect(body.sessionId).toBeDefined();
     expect(mockParseResume).toHaveBeenCalledOnce();
     expect(mockStore).toHaveBeenCalledOnce();
+  });
+
+  it("returns 200 for anonymous trial without auth", async () => {
+    mockGetAuthUser.mockResolvedValue(null);
+    const req = buildMockRequest({
+      role: "Engineer",
+      interviewStyle: "behavioral",
+      trial: "true",
+    });
+    const res = await POST(req);
+    const body = await res.json();
+    expect(res.status).toBe(200);
+    expect(body.sessionId).toBeDefined();
+    expect(mockStore).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ isTrial: true, interviewStyle: "behavioral" }),
+    );
+  });
+
+  it("returns 400 when trial request includes a resume file", async () => {
+    mockGetAuthUser.mockResolvedValue(null);
+    const file = new File(["pdf"], "resume.pdf", { type: "application/pdf" });
+    const req = buildMockRequest({
+      role: "Engineer",
+      trial: "true",
+      resume: file,
+    });
+    const res = await POST(req);
+    const body = await res.json();
+    expect(res.status).toBe(400);
+    expect(body.error).toMatch(/web trial/i);
   });
 });

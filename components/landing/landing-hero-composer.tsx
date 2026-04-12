@@ -1,24 +1,16 @@
 "use client";
 
-import {
-  useRef,
-  useState,
-  useEffect,
-  type ChangeEvent,
-  type FormEvent,
-} from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import {
   useCyclingTypewriter,
   useReducedMotionPreference,
 } from "@/components/landing/use-cycling-typewriter";
-import { isValidFile } from "@/lib/validate-file";
-import { Code2, Loader2, MessageSquare, Plus, X } from "lucide-react";
+import { Code2, Loader2, MessageSquare } from "lucide-react";
 
 type FocusMode = "behavioral" | "technical";
 
-/** One-tap role suggestions; labels are sent as the interview role as-is. */
 const SUGGESTED_ROLES = [
   "Senior Software Engineer",
   "Product Manager",
@@ -35,46 +27,15 @@ interface LandingHeroComposerProps {
   defaultRole?: string;
 }
 
-/** Save composer state to sessionStorage for restoration after login */
-export function saveComposerState(role: string, style: FocusMode) {
-  if (typeof window !== "undefined") {
-    sessionStorage.setItem("vocis_composer_role", role);
-    sessionStorage.setItem("vocis_composer_style", style);
-  }
-}
-
-/** Get saved composer state from sessionStorage */
-function getSavedComposerState(): { role: string; style: FocusMode } | null {
-  if (typeof window === "undefined") return null;
-  const role = sessionStorage.getItem("vocis_composer_role");
-  const style = sessionStorage.getItem(
-    "vocis_composer_style",
-  ) as FocusMode | null;
-  if (role) {
-    return { role, style: style === "technical" ? "technical" : "behavioral" };
-  }
-  return null;
-}
-
-/** Clear saved composer state */
-function clearComposerState() {
-  if (typeof window !== "undefined") {
-    sessionStorage.removeItem("vocis_composer_role");
-    sessionStorage.removeItem("vocis_composer_style");
-  }
-}
-
 export function LandingHeroComposer({
   focusRing,
   defaultRole = "",
 }: LandingHeroComposerProps) {
   const router = useRouter();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const promptRef = useRef<HTMLTextAreaElement>(null);
   const [prompt, setPrompt] = useState(defaultRole);
   const [fieldFocused, setFieldFocused] = useState(false);
   const [focus, setFocus] = useState<FocusMode>("behavioral");
-  const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const reducedMotion = useReducedMotionPreference();
   const placeholderActive = !prompt.trim() && !fieldFocused;
@@ -82,35 +43,12 @@ export function LandingHeroComposer({
     placeholderActive && !reducedMotion,
   );
 
-  // Restore saved state on mount
-  useEffect(() => {
-    const saved = getSavedComposerState();
-    if (saved) {
-      setPrompt(saved.role);
-      setFocus(saved.style);
-      clearComposerState();
-    }
-  }, []);
-
-  function onResumePicked(e: ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
-    e.target.value = "";
-    if (!f) return;
-    const result = isValidFile(f);
-    if (!result.valid) {
-      toast.error(result.error ?? "Invalid file");
-      setResumeFile(null);
-      return;
-    }
-    setResumeFile(f);
-  }
-
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const trimmed = prompt.trim();
 
     if (!trimmed) {
-      toast.error("Enter your target role to start the interview.");
+      toast.error("Enter your target role to start the trial.");
       return;
     }
 
@@ -119,19 +57,12 @@ export function LandingHeroComposer({
       const formData = new FormData();
       formData.append("role", trimmed);
       formData.append("interviewStyle", focus);
-      if (resumeFile) formData.append("resume", resumeFile);
+      formData.append("trial", "true");
 
       const res = await fetch("/api/interview/setup", {
         method: "POST",
         body: formData,
       });
-
-      if (res.status === 401) {
-        // Save composer state before redirecting to login
-        saveComposerState(trimmed, focus);
-        router.push("/login");
-        return;
-      }
 
       if (!res.ok) {
         const data = (await res.json().catch(() => ({}))) as {
@@ -140,7 +71,7 @@ export function LandingHeroComposer({
         throw new Error(
           typeof data.error === "string"
             ? data.error
-            : "Could not start interview",
+            : "Could not start trial",
         );
       }
 
@@ -150,7 +81,7 @@ export function LandingHeroComposer({
       }
 
       router.push(
-        `/interview?sessionId=${encodeURIComponent(body.sessionId)}&role=${encodeURIComponent(trimmed)}&style=${focus}`,
+        `/interview?sessionId=${encodeURIComponent(body.sessionId)}&role=${encodeURIComponent(trimmed)}&style=${focus}&trial=1`,
       );
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Something went wrong");
@@ -163,8 +94,12 @@ export function LandingHeroComposer({
     <form
       onSubmit={(e) => void handleSubmit(e)}
       className="mt-8 w-full rounded-[1.75rem] border border-white/10 bg-white/[0.03] text-left shadow-none sm:mt-10 sm:rounded-[2rem]"
-      aria-label="Interview composer"
+      aria-label="30-second interview trial"
     >
+      <p className="border-b border-white/10 px-5 py-3 text-center text-xs text-zinc-400 sm:px-7 sm:text-sm">
+        No account needed — try <span className="text-zinc-200">30 seconds</span>{" "}
+        of voice practice. Full sessions and history are in the mobile app.
+      </p>
       <label htmlFor="landing-hero-prompt" className="sr-only">
         Job title or full job description for your mock interview
       </label>
@@ -241,87 +176,45 @@ export function LandingHeroComposer({
       </div>
 
       <div className="flex flex-col gap-4 border-t border-white/10 px-4 pb-4 pt-4 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:px-6 sm:pb-5 sm:pt-5">
-        <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2.5 sm:gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <input
-              ref={fileInputRef}
-              id="landing-resume-input"
-              type="file"
-              accept=".pdf,.docx"
-              className="sr-only"
-              tabIndex={-1}
-              onChange={onResumePicked}
-            />
-            <button
-              type="button"
-              title="Attach resume (PDF or DOCX, max 5 MB)"
-              aria-label="Attach resume"
-              className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-zinc-400 transition motion-safe:hover:bg-white/10 motion-safe:hover:text-white sm:h-11 sm:w-11 ${focusRing}`}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Plus className="h-5 w-5 sm:h-6 sm:w-6" aria-hidden />
-            </button>
-
-            {resumeFile ? (
-              <span className="flex max-w-[min(100%,18rem)] items-center gap-1 rounded-lg border border-white/15 bg-white/5 px-2 py-1 text-xs text-zinc-300 sm:text-sm">
-                <span className="truncate" title={resumeFile.name}>
-                  {resumeFile.name}
-                </span>
-                <button
-                  type="button"
-                  aria-label="Remove attached resume"
-                  className={`shrink-0 rounded p-0.5 text-zinc-500 motion-safe:hover:bg-white/10 motion-safe:hover:text-zinc-300 ${focusRing}`}
-                  onClick={() => {
-                    setResumeFile(null);
-                  }}
-                >
-                  <X className="h-3.5 w-3.5" aria-hidden />
-                </button>
-              </span>
-            ) : null}
-          </div>
-
+        <div
+          className="relative inline-flex rounded-full bg-zinc-800/90 p-1"
+          role="group"
+          aria-label="Interview focus"
+        >
           <div
-            className="relative inline-flex rounded-full bg-zinc-800/90 p-1"
-            role="group"
-            aria-label="Interview focus"
+            className={`absolute top-1 bottom-1 w-[calc(50%-2px)] rounded-full bg-zinc-600/90 transition-transform duration-200 ease-out ${
+              focus === "technical"
+                ? "translate-x-[calc(100%+4px)]"
+                : "translate-x-0"
+            }`}
+            aria-hidden
+          />
+          <button
+            type="button"
+            aria-pressed={focus === "behavioral"}
+            onClick={() => setFocus("behavioral")}
+            className={`relative z-10 inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-colors duration-200 sm:px-4 sm:py-2.5 sm:text-base ${
+              focus === "behavioral"
+                ? "text-white"
+                : "text-zinc-400 motion-safe:hover:text-zinc-200"
+            } ${focusRing}`}
           >
-            {/* Sliding background indicator */}
-            <div
-              className={`absolute top-1 bottom-1 w-[calc(50%-2px)] rounded-full bg-zinc-600/90 transition-transform duration-200 ease-out ${
-                focus === "technical"
-                  ? "translate-x-[calc(100%+4px)]"
-                  : "translate-x-0"
-              }`}
-              aria-hidden
-            />
-            <button
-              type="button"
-              aria-pressed={focus === "behavioral"}
-              onClick={() => setFocus("behavioral")}
-              className={`relative z-10 inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-colors duration-200 sm:px-4 sm:py-2.5 sm:text-base ${
-                focus === "behavioral"
-                  ? "text-white"
-                  : "text-zinc-400 motion-safe:hover:text-zinc-200"
-              } ${focusRing}`}
-            >
-              <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden />
-              Behavioral
-            </button>
-            <button
-              type="button"
-              aria-pressed={focus === "technical"}
-              onClick={() => setFocus("technical")}
-              className={`relative z-10 inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-colors duration-200 sm:px-4 sm:py-2.5 sm:text-base ${
-                focus === "technical"
-                  ? "text-white"
-                  : "text-zinc-400 motion-safe:hover:text-zinc-200"
-              } ${focusRing}`}
-            >
-              <Code2 className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden />
-              Technical
-            </button>
-          </div>
+            <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden />
+            Behavioral
+          </button>
+          <button
+            type="button"
+            aria-pressed={focus === "technical"}
+            onClick={() => setFocus("technical")}
+            className={`relative z-10 inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-colors duration-200 sm:px-4 sm:py-2.5 sm:text-base ${
+              focus === "technical"
+                ? "text-white"
+                : "text-zinc-400 motion-safe:hover:text-zinc-200"
+            } ${focusRing}`}
+          >
+            <Code2 className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden />
+            Technical
+          </button>
         </div>
 
         <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-2.5">
@@ -337,7 +230,7 @@ export function LandingHeroComposer({
                 aria-hidden
               />
             ) : null}
-            {submitting ? "Starting…" : "Get started"}
+            {submitting ? "Starting…" : "Try 30 seconds free"}
           </button>
         </div>
       </div>
