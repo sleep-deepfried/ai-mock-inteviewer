@@ -150,9 +150,15 @@ export default function PrivacyPolicyPage() {
           <section className="space-y-3">
             <h2 className="text-lg font-semibold text-white">Contact</h2>
             <p>
-              For privacy questions, contact the operator of this site (see
-              footer on the home page) or your organization&apos;s administrator
-              if Vocis is offered through an enterprise.
+              For privacy questions, contact the operator of this site via{" "}
+              <Link
+                href="/support"
+                className="font-medium text-violet-400 hover:text-violet-300"
+              >
+                Support
+              </Link>{" "}
+              or your organization&apos;s administrator if Vocis is offered through
+              an enterprise.
             </p>
           </section>
 

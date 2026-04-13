@@ -133,8 +133,14 @@ export default function TermsPage() {
           <section className="space-y-3">
             <h2 className="text-lg font-semibold text-white">Contact</h2>
             <p>
-              For questions about these Terms, use the contact information shown
-              on the Vocis home page.
+              For questions about these Terms, see{" "}
+              <Link
+                href="/support"
+                className="font-medium text-violet-400 hover:text-violet-300"
+              >
+                Support
+              </Link>
+              .
             </p>
           </section>
         </div>

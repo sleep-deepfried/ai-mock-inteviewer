@@ -164,11 +164,21 @@ describe("Landing Page", () => {
     render(<HomePage />);
     const footer = screen.getByRole("contentinfo");
     expect(footer).toHaveTextContent(
-      new RegExp(`©\\s*${new Date().getFullYear()}\\s*Vocis`),
+      new RegExp(
+        `©\\s*${new Date().getFullYear()}\\s*Earl John Pulido in Collaboration with`,
+        "i",
+      ),
     );
     expect(
-      screen.getByRole("navigation", { name: /legal/i }),
+      screen.getByRole("link", { name: /^tutorials dojo$/i }),
+    ).toHaveAttribute("href", "https://tutorialsdojo.com");
+    expect(
+      screen.getByRole("navigation", { name: /legal and support/i }),
     ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /^support$/i })).toHaveAttribute(
+      "href",
+      "/support",
+    );
     expect(screen.getByRole("link", { name: /privacy policy/i })).toHaveAttribute(
       "href",
       "/privacy-policy",

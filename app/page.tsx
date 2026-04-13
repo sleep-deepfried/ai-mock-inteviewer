@@ -345,8 +345,17 @@ export default function HomePage() {
         >
           <nav
             className="mb-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-2"
-            aria-label="Legal"
+            aria-label="Legal and support"
           >
+            <Link
+              href="/support"
+              className={`text-zinc-500 transition hover:text-zinc-300 ${focusRing} rounded`}
+            >
+              Support
+            </Link>
+            <span className="text-zinc-700" aria-hidden>
+              ·
+            </span>
             <Link
               href="/privacy-policy"
               className={`text-zinc-500 transition hover:text-zinc-300 ${focusRing} rounded`}
@@ -363,14 +372,16 @@ export default function HomePage() {
               Terms of Service
             </Link>
           </nav>
-          <p>
-            © {new Date().getFullYear()} Vocis
-            <span className="mx-1.5 text-zinc-700" aria-hidden>
-              ·
-            </span>
-            <span className="text-zinc-500">
-              Earl John Pulido, in collaboration with Tutorial Dojo
-            </span>
+          <p className="text-zinc-500">
+            © {new Date().getFullYear()} Earl John Pulido in Collaboration with{" "}
+            <a
+              href="https://tutorialsdojo.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`text-zinc-400 transition hover:text-zinc-200 ${focusRing} rounded underline-offset-2 hover:underline`}
+            >
+              Tutorials Dojo
+            </a>
           </p>
         </footer>
       </main>
