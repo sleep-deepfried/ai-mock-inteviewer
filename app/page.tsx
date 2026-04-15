@@ -1,14 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
-import {
-  Mic,
-  Target,
-  LineChart,
-  Smartphone,
-  Play,
-  Apple,
-  Handshake,
-} from "lucide-react";
+import { Mic, Target, LineChart, Smartphone, Handshake } from "lucide-react";
+import { FaApple } from "react-icons/fa";
+import { IoLogoGooglePlaystore } from "react-icons/io5";
 import { LandingFaq, type FaqItem } from "@/components/landing/landing-faq";
 import { LandingHeader } from "@/components/landing/landing-header";
 import { LandingHeroComposer } from "@/components/landing/landing-hero-composer";
@@ -128,7 +122,7 @@ function MobileAppCtaSection({ focusRing: ring }: { focusRing: string }) {
                   rel="noopener noreferrer"
                   className={`inline-flex items-center gap-3 rounded-xl border border-white/20 bg-black px-4 py-2.5 transition hover:bg-zinc-900 ${ring}`}
                 >
-                  <Apple className="h-8 w-8 text-white" aria-hidden />
+                  <FaApple className="h-8 w-8 text-white" aria-hidden />
                   <div className="flex flex-col items-start">
                     <span className="text-[10px] uppercase tracking-wide text-zinc-300">
                       Download on the
@@ -140,7 +134,7 @@ function MobileAppCtaSection({ focusRing: ring }: { focusRing: string }) {
                 </a>
               ) : appStoreUrl ? (
                 <span className="inline-flex cursor-default items-center gap-3 rounded-xl border border-white/10 bg-black px-4 py-2.5">
-                  <Apple className="h-8 w-8 text-white" aria-hidden />
+                  <FaApple className="h-8 w-8 text-white" aria-hidden />
                   <div className="flex flex-col items-start">
                     <span className="text-[10px] uppercase tracking-wide text-zinc-400">
                       Coming soon to
@@ -158,8 +152,8 @@ function MobileAppCtaSection({ focusRing: ring }: { focusRing: string }) {
                   rel="noopener noreferrer"
                   className={`inline-flex items-center gap-3 rounded-xl border border-white/20 bg-black px-4 py-2.5 transition hover:bg-zinc-900 ${ring}`}
                 >
-                  <Play
-                    className="h-8 w-8 fill-current text-white"
+                  <IoLogoGooglePlaystore
+                    className="h-8 w-8 text-white"
                     aria-hidden
                   />
                   <div className="flex flex-col items-start">
@@ -173,8 +167,8 @@ function MobileAppCtaSection({ focusRing: ring }: { focusRing: string }) {
                 </a>
               ) : playStoreUrl ? (
                 <span className="inline-flex cursor-default items-center gap-3 rounded-xl border border-white/10 bg-black px-4 py-2.5">
-                  <Play
-                    className="h-8 w-8 fill-current text-white"
+                  <IoLogoGooglePlaystore
+                    className="h-8 w-8 text-white"
                     aria-hidden
                   />
                   <div className="flex flex-col items-start">

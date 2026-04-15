@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Play, Apple } from "lucide-react";
+import { FaApple } from "react-icons/fa";
+import { IoLogoGooglePlaystore } from "react-icons/io5";
 
 interface LandingHeaderProps {
   showBeta: boolean;
@@ -56,7 +57,7 @@ export function LandingHeader({ showBeta, focusRing }: LandingHeaderProps) {
               rel="noopener noreferrer"
               className={`inline-flex items-center gap-2 rounded-lg border border-white/20 bg-black px-3 py-1.5 transition hover:bg-zinc-900 ${focusRing}`}
             >
-              <Apple className="h-5 w-5 text-white" aria-hidden />
+              <FaApple className="h-5 w-5 text-white" aria-hidden />
               <div className="flex flex-col items-start">
                 <span className="text-[8px] uppercase leading-tight tracking-wide text-zinc-300">
                   Download on the
@@ -68,7 +69,7 @@ export function LandingHeader({ showBeta, focusRing }: LandingHeaderProps) {
             </a>
           ) : appStoreUrl ? (
             <span className="inline-flex cursor-default items-center gap-2 rounded-lg border border-white/10 bg-black px-3 py-1.5">
-              <Apple className="h-5 w-5 text-white" aria-hidden />
+              <FaApple className="h-5 w-5 text-white" aria-hidden />
               <div className="flex flex-col items-start">
                 <span className="text-[8px] uppercase leading-tight tracking-wide text-zinc-400">
                   Coming soon to
@@ -86,7 +87,10 @@ export function LandingHeader({ showBeta, focusRing }: LandingHeaderProps) {
               rel="noopener noreferrer"
               className={`inline-flex items-center gap-2 rounded-lg border border-white/20 bg-black px-3 py-1.5 transition hover:bg-zinc-900 ${focusRing}`}
             >
-              <Play className="h-5 w-5 fill-current text-white" aria-hidden />
+              <IoLogoGooglePlaystore
+                className="h-5 w-5 text-white"
+                aria-hidden
+              />
               <div className="flex flex-col items-start">
                 <span className="text-[8px] uppercase leading-tight tracking-wide text-zinc-300">
                   Get it on
@@ -98,7 +102,10 @@ export function LandingHeader({ showBeta, focusRing }: LandingHeaderProps) {
             </a>
           ) : playStoreUrl ? (
             <span className="inline-flex cursor-default items-center gap-2 rounded-lg border border-white/10 bg-black px-3 py-1.5">
-              <Play className="h-5 w-5 fill-current text-white" aria-hidden />
+              <IoLogoGooglePlaystore
+                className="h-5 w-5 text-white"
+                aria-hidden
+              />
               <div className="flex flex-col items-start">
                 <span className="text-[8px] uppercase leading-tight tracking-wide text-zinc-400">
                   Coming soon to
